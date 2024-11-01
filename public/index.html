@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Recipe Finder</h1>
+    <div>
+        <label for="ingredients">Ingredients (comma separated):</label>
+        <input name="ingredients" id="ingredients" type="text">
+    </div>
+    <div>
+        <label for="recipe-count">Number of recipes (max 10):</label>
+        <input name="recipe-count" id="recipe-count" type="number" min="1" max="10" value="5">
+    </div>
+    <button id="search-button">Find Recipes</button>
+    <p id="error-message"></p>
+    <table id="recipes-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Image</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <script src="my_script.js"></script>
+</body>
+</html>
