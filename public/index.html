@@ -1,31 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Meal Planner</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <h1>Recipe Finder</h1>
-    <div>
-        <label for="ingredients">Ingredients (comma separated):</label>
-        <input name="ingredients" id="ingredients" type="text">
+    <nav class="navbar">
+        <div class="nav-content">
+            <h1>Recipe Meal Planner</h1>
+            <div class="nav-links">
+                <a href="#" class="active">Search</a>
+                <a href="calendar.html">Meal Calendar</a>
+                <a href="pantry.html">My Pantry</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-options">
+                <div class="search-type">
+                    <button class="search-toggle active" data-type="ingredients">Search by Ingredients</button>
+                    <button class="search-toggle" data-type="recipe">Search by Recipe Name</button>
+                </div>
+                
+                <!-- Ingredients Search -->
+                <div id="ingredients-search" class="search-panel active">
+                    <div class="input-group">
+                        <label for="ingredients">Ingredients (comma separated):</label>
+                        <input type="text" id="ingredients" placeholder="e.g., chicken, onion">
+                    </div>
+                    <div class="input-group">
+                        <label for="recipe-count">Number of recipes (max 10):</label>
+                        <input type="number" id="recipe-count" value="5" min="1" max="10">
+                    </div>
+                </div>
+
+                <!-- Recipe Name Search -->
+                <div id="recipe-search" class="search-panel">
+                    <div class="input-group">
+                        <label for="recipe-name">Recipe Name:</label>
+                        <input type="text" id="recipe-name" placeholder="e.g., Pasta Carbonara">
+                    </div>
+                    <div class="filters">
+                        <select id="cuisine-type">
+                            <option value="">Any Cuisine</option>
+                            <option value="italian">Italian</option>
+                            <option value="mexican">Mexican</option>
+                            <option value="asian">Asian</option>
+                            <!-- Add more cuisines -->
+                        </select>
+                        <select id="diet-type">
+                            <option value="">Any Diet</option>
+                            <option value="vegetarian">Vegetarian</option>
+                            <option value="vegan">Vegan</option>
+                            <option value="gluten-free">Gluten Free</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="search-button" class="search-btn">Search Recipes</button>
+            </div>
+        </div>
+
+        <div id="error-message" class="error"></div>
+
+        <!-- Results Section -->
+        <div class="results-section">
+            <div id="recipes-grid" class="recipes-grid">
+                <!-- Recipe cards will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Recipe Detail Modal -->
+        <div id="recipe-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="recipe-detail"></div>
+            </div>
+        </div>
     </div>
-    <div>
-        <label for="recipe-count">Number of recipes (max 10):</label>
-        <input name="recipe-count" id="recipe-count" type="number" min="1" max="10" value="5">
-    </div>
-    <button id="search-button">Find Recipes</button>
-    <p id="error-message"></p>
-    <table id="recipes-table">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Image</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <script src="my_script.js"></script>
+
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/my_script.js"></script>
 </body>
 </html>
