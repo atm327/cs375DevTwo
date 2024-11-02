@@ -30,15 +30,6 @@ function searchByIngredients() {
     fetchRecipes(apiUrl);
 }
 
-function searchByRecipeName() {
-    const recipeName = document.getElementById('recipe-name').value;
-    const cuisine = document.getElementById('cuisine-type').value;
-    const diet = document.getElementById('diet-type').value;
-    const apiUrl = `/api/search?query=${recipeName}&cuisine=${cuisine}&diet=${diet}`;
-    
-    fetchRecipes(apiUrl);
-}
-
 function fetchRecipes(apiUrl) {
     // Show loading state
     const resultsContainer = document.getElementById('recipes-grid');
@@ -154,7 +145,7 @@ function checkPantry(recipeId) {
     alert('Feature coming soon: Check pantry ingredients');
 }
 
-// Add this at the beginning of your my_script.js file
+
 function clearError() {
     const errorElement = document.getElementById('error-message');
     errorElement.textContent = '';
@@ -167,7 +158,6 @@ function showError(message) {
     errorElement.style.display = 'block';
 }
 
-// Update your searchByRecipeName function
 function searchByRecipeName() {
     clearError(); // Clear any existing errors
     const recipeName = document.getElementById('recipe-name').value;

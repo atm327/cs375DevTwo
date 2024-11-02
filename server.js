@@ -12,7 +12,7 @@ const hostname = "localhost";
 app.use(express.static("public"));
 app.use(express.json());
 
-// Updated endpoint with better error handling
+// Endpoint for searching recipes by ingredients
 app.get('/api/findByIngredients', async (req, res) => {
     const ingredients = req.query.ingredients;
     const number = req.query.number || 5;
@@ -38,7 +38,7 @@ app.get('/api/findByIngredients', async (req, res) => {
     }
 });
 
-// New endpoint for searching recipes by name
+// Endpoint for searching recipes by name
 app.get('/api/search', async (req, res) => {
     const { query, cuisine, diet } = req.query;
     const number = req.query.number || 5;
@@ -62,7 +62,7 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
-// New endpoint for getting recipe details
+// Endpoint for getting recipe details
 app.get('/api/recipe/:id', async (req, res) => {
     const id = req.params.id;
     const url = `${baseUrl}/${id}/information?apiKey=${apiKey}`;
