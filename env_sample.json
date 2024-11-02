@@ -1,4 +1,4 @@
 {
-	"api_key": "APIKEYHERE",
-	"api_url": "https://api.spoonacular.com/recipes/findByIngredients"
+    "api_key": "ENTER_YOUR_SPOONACULAR_API_KEY_HERE",
+    "api_url": "https://api.spoonacular.com/recipes"
 }
