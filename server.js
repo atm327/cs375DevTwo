@@ -2,6 +2,7 @@ const axios = require("axios");
 const express = require("express");
 const path = require("path");
 const { Pool } = require("pg");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 const apiFile = require(path.join(__dirname, 'env.json'));
@@ -11,14 +12,57 @@ const port = 3000;
 const hostname = "localhost";
 
 app.use(express.static("public"));
-app.use(express.json()); 
+app.use(express.json());
 
 const pool = new Pool({
-    user: 'your-username',
+    user: 'postgres',
     host: 'localhost',
     database: 'recipe_db',
-    password: 'your-password',
+    password: 'password',
     port: 5432,
+});
+
+// Endpoint to register a new user
+app.post('/api/register', async (req, res) => {
+    const { username, email, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    try {
+        const result = await pool.query(
+            'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING *',
+            [username, email, hashedPassword]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Endpoint to login a user
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const result = await pool.query(
+            'SELECT * FROM users WHERE username = $1',
+            [username]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const user = result.rows[0];
+        const isValidPassword = await bcrypt.compare(password, user.password_hash);
+
+        if (!isValidPassword) {
+            return res.status(401).json({ message: 'Invalid password' });
+        }
+
+        res.status(200).json({ message: 'Login successful'});
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Endpoint to get all pantry items
