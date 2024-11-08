@@ -29,11 +29,11 @@ function setupEventListeners() {
     document.getElementById('categoryFilter').addEventListener('change', filterPantryItems);
 }
 
-function handleAddItem(event) {
+async function handleAddItem(event) {
     event.preventDefault();
 
     const newItem = {
-        id: Date.now(), // Simple unique ID
+        user_id: 1, // Replace with actual user_id from your auth system
         name: document.getElementById('itemName').value,
         quantity: parseFloat(document.getElementById('itemQuantity').value),
         unit: document.getElementById('itemUnit').value,
@@ -41,13 +41,35 @@ function handleAddItem(event) {
         dateAdded: new Date().toISOString()
     };
 
-    pantryItems.push(newItem);
-    savePantryItems();
-    renderPantry();
+    try {
+        const response = await fetch('/api/pantry', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newItem)
+        });
 
-    // Reset and close form
-    event.target.reset();
-    document.getElementById('addItemModal').style.display = 'none';
+        const addedItem = await response.json();
+        pantryItems.push(addedItem);
+        renderPantry();
+
+        // Reset and close form
+        event.target.reset();
+        document.getElementById('addItemModal').style.display = 'none';
+    } catch (error) {
+        console.error('Error adding item:', error);
+    }
+}
+
+async function loadPantryItems() {
+    try {
+        const response = await fetch('/api/pantry?user_id=1'); // Replace with actual user_id
+        pantryItems = await response.json();
+        renderPantry();
+    } catch (error) {
+        console.error('Error loading pantry items:', error);
+    }
 }
 
 function renderPantry() {
@@ -77,9 +99,9 @@ function createPantryItemElement(item) {
             <div>${item.quantity} ${item.unit}</div>
         </div>
         <div class="pantry-item-actions">
-            <button onclick="adjustQuantity(${item.id}, -1)" class="action-btn">-</button>
-            <button onclick="adjustQuantity(${item.id}, 1)" class="action-btn">+</button>
-            <button onclick="removeItem(${item.id})" class="action-btn">×</button>
+            <button onclick="adjustQuantity(${item.pantry_item_id}, -1)" class="action-btn">-</button>
+            <button onclick="adjustQuantity(${item.pantry_item_id}, 1)" class="action-btn">+</button>
+            <button onclick="removeItem(${item.pantry_item_id})" class="action-btn">×</button>
         </div>
     `;
     
@@ -90,20 +112,48 @@ function createPantryItemElement(item) {
     return div;
 }
 
-function adjustQuantity(itemId, change) {
-    const item = pantryItems.find(item => item.id === itemId);
+async function adjustQuantity(itemId, change) {
+    const item = pantryItems.find(item => item.pantry_item_id === itemId);
     if (item) {
-        item.quantity = Math.max(0, item.quantity + change);
-        savePantryItems();
-        renderPantry();
+        const newQuantity = Math.max(0, item.quantity + change);
+
+        try {
+            const response = await fetch(`/api/pantry/${itemId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ quantity: newQuantity })
+            });
+
+            if (response.ok) {
+                item.quantity = newQuantity;
+                renderPantry();
+            } else {
+                console.error('Error adjusting quantity:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error adjusting quantity:', error);
+        }
     }
 }
 
-function removeItem(itemId) {
+async function removeItem(itemId) {
     if (confirm('Are you sure you want to remove this item?')) {
-        pantryItems = pantryItems.filter(item => item.id !== itemId);
-        savePantryItems();
-        renderPantry();
+        try {
+            const response = await fetch(`/api/pantry/${itemId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                pantryItems = pantryItems.filter(item => item.pantry_item_id !== itemId);
+                renderPantry();
+            } else {
+                console.error('Error removing item:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error removing item:', error);
+        }
     }
 }
 
@@ -142,14 +192,12 @@ function checkLowStock() {
             </div>
         `).join('');
         
-        // Show notification (you can enhance this with a proper notification system)
         const notification = `You have ${lowStockItems.length} items running low!`;
         showNotification(notification);
     }
 }
 
 function showNotification(message) {
-    // Simple notification - you can enhance this with a proper notification system
     const notificationDiv = document.createElement('div');
     notificationDiv.className = 'notification';
     notificationDiv.textContent = message;
@@ -159,22 +207,3 @@ function showNotification(message) {
         notificationDiv.remove();
     }, 3000);
 }
-
-// Local Storage functions
-function loadPantryItems() {
-    const saved = localStorage.getItem('pantryItems');
-    if (saved) {
-        pantryItems = JSON.parse(saved);
-    }
-}
-
-function savePantryItems() {
-    localStorage.setItem('pantryItems', JSON.stringify(pantryItems));
-}
-
-// Window click event for closing modals
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.style.display = 'none';
-    }
-};

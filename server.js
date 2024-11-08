@@ -1,68 +1,107 @@
 const axios = require("axios");
 const express = require("express");
 const path = require("path");
-const app = express();
+const { Pool } = require("pg");
 
+const app = express();
 const apiFile = require(path.join(__dirname, 'env.json'));
 const apiKey = apiFile["api_key"];
-const baseUrl = "https://api.spoonacular.com/recipes";  // Direct URL
+const baseUrl = "https://api.spoonacular.com/recipes"; 
 const port = 3000;
 const hostname = "localhost";
 
 app.use(express.static("public"));
-app.use(express.json());
+app.use(express.json()); 
 
-// Endpoint for searching recipes by ingredients
+const pool = new Pool({
+    user: 'your-username',
+    host: 'localhost',
+    database: 'recipe_db',
+    password: 'your-password',
+    port: 5432,
+});
+
+// Endpoint to get all pantry items
+app.get('/api/pantry', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM pantry_items WHERE user_id = $1', [1]); // Assuming user_id = 1 for now
+        res.status(200).json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Endpoint to add a new pantry item
+app.post('/api/pantry', async (req, res) => {
+    const { name, quantity, unit, category, dateAdded } = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO pantry_items (user_id, item_name, quantity, unit, category, date_added) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [1, name, quantity, unit, category, dateAdded] // Assuming user_id = 1 for now
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Endpoint to update a pantry item quantity
+app.patch('/api/pantry/:id', async (req, res) => {
+    const { id } = req.params;
+    const { quantity } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE pantry_items SET quantity = $1 WHERE id = $2 RETURNING *',
+            [quantity, id]
+        );
+        res.status(200).json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Endpoint to delete a pantry item
+app.delete('/api/pantry/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM pantry_items WHERE id = $1', [id]);
+        res.status(204).send();
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Existing endpoints for recipes
 app.get('/api/findByIngredients', async (req, res) => {
     const ingredients = req.query.ingredients;
     const number = req.query.number || 5;
     const url = `${baseUrl}/findByIngredients?apiKey=${apiKey}&ingredients=${ingredients}&number=${number}&ranking=2`;
 
-    console.log('Requesting URL:', url.replace(apiKey, 'API_KEY')); // Log URL (hide API key)
-
     try {
         const response = await axios.get(url);
-        console.log('API Response Status:', response.status);
         res.status(200).json(response.data);
     } catch (error) {
-        console.error('API Error:', {
-            status: error.response?.status,
-            message: error.response?.data?.message || error.message,
-            data: error.response?.data
-        });
-        
-        res.status(error.response?.status || 500).json({
-            error: error.response?.data?.message || 'Internal server error',
-            details: error.response?.data
-        });
+        res.status(error.response?.status || 500).json({ error: error.response?.data?.message || 'Internal server error' });
     }
 });
 
-// Endpoint for searching recipes by name
 app.get('/api/search', async (req, res) => {
     const { query, cuisine, diet } = req.query;
     const number = req.query.number || 5;
     
-    // Construct URL with optional parameters
     let url = `${baseUrl}/complexSearch?apiKey=${apiKey}&query=${query}&number=${number}`;
     if (cuisine) url += `&cuisine=${cuisine}`;
     if (diet) url += `&diet=${diet}`;
-    url += '&addRecipeInformation=true'; // This includes detailed recipe info in response
-    
-    console.log('Searching recipes:', url.replace(apiKey, 'API_KEY'));
+    url += '&addRecipeInformation=true';
 
     try {
         const response = await axios.get(url);
-        res.status(200).json(response.data.results); // Send just the results array
+        res.status(200).json(response.data.results);
     } catch (error) {
-        console.error('Recipe search error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json({
-            error: error.response?.data?.message || 'Failed to search recipes'
-        });
+        res.status(error.response?.status || 500).json({ error: error.response?.data?.message || 'Failed to search recipes' });
     }
 });
 
-// Endpoint for getting recipe details
 app.get('/api/recipe/:id', async (req, res) => {
     const id = req.params.id;
     const url = `${baseUrl}/${id}/information?apiKey=${apiKey}`;
@@ -71,10 +110,7 @@ app.get('/api/recipe/:id', async (req, res) => {
         const response = await axios.get(url);
         res.status(200).json(response.data);
     } catch (error) {
-        console.error('Recipe details error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json({
-            error: error.response?.data?.message || 'Failed to get recipe details'
-        });
+        res.status(error.response?.status || 500).json({ error: error.response?.data?.message || 'Failed to get recipe details' });
     }
 });
 
