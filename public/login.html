@@ -10,14 +10,14 @@
     <div class="login-container">
         <div class="login-form">
             <h2>Login</h2>
-            <form id="loginForm">
+            <form id="loginForm" action="/api/login" method="post">
                 <div class="input-group">
                     <label for="login-username">Username:</label>
-                    <input type="text" id="login-username" required>
+                    <input type="text" id="login-username" name="username" required>
                 </div>
                 <div class="input-group">
                     <label for="login-password">Password:</label>
-                    <input type="password" id="login-password" required>
+                    <input type="password" id="login-password" name="password" required>
                 </div>
                 <button type="submit">Sign In</button>
                 <p>Don't have an account? <a href="#" id="showSignup">Sign Up</a></p>
@@ -26,18 +26,18 @@
 
         <div class="signup-form" style="display: none;">
             <h2>Sign Up</h2>
-            <form id="signupForm">
+            <form id="signupForm" action="/api/register" method="post">
                 <div class="input-group">
                     <label for="signup-username">Username:</label>
-                    <input type="text" id="signup-username" required>
+                    <input type="text" id="signup-username" name="username" required>
                 </div>
                 <div class="input-group">
                     <label for="signup-email">Email:</label>
-                    <input type="email" id="signup-email" required>
+                    <input type="email" id="signup-email" name="email" required>
                 </div>
                 <div class="input-group">
                     <label for="signup-password">Password:</label>
-                    <input type="password" id="signup-password" required>
+                    <input type="password" id="signup-password" name="password" required>
                 </div>
                 <button type="submit">Sign Up</button>
                 <p>Already have an account? <a href="#" id="showLogin">Sign In</a></p>
@@ -54,6 +54,71 @@
         document.getElementById('showLogin').addEventListener('click', function() {
             document.querySelector('.signup-form').style.display = 'none';
             document.querySelector('.login-form').style.display = 'block';
+        });
+
+        // Redirect to homepage after successful login
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = {
+                username: formData.get('username'),
+                password: formData.get('password')
+            };
+
+            try {
+                const response = await fetch(form.action, {
+                    method: form.method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    window.location.href = '/index.html'; // Redirect to homepage
+                } else {
+                    const errorData = await response.json();
+                    alert(`Error: ${errorData.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An unexpected error occurred. Please try again later.');
+            }
+        });
+
+        // Redirect to login page after successful registration
+        document.getElementById('signupForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = {
+                username: formData.get('username'),
+                email: formData.get('email'),
+                password: formData.get('password')
+            };
+
+            try {
+                const response = await fetch(form.action, {
+                    method: form.method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    window.location.href = '/login.html'; // Redirect to login page
+                } else {
+                    const errorData = await response.json();
+                    alert(`Error: ${errorData.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An unexpected error occurred. Please try again later.');
+            }
         });
     </script>
 </body>

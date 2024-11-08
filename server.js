@@ -1,8 +1,8 @@
 const axios = require("axios");
 const express = require("express");
 const path = require("path");
+const bcrypt = require('bcryptjs');
 const { Pool } = require("pg");
-const bcrypt = require("bcryptjs");
 
 const app = express();
 const apiFile = require(path.join(__dirname, 'env.json'));
@@ -13,6 +13,7 @@ const hostname = "localhost";
 
 app.use(express.static("public"));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const pool = new Pool({
     user: 'postgres',
@@ -22,12 +23,19 @@ const pool = new Pool({
     port: 5432,
 });
 
-// Endpoint to register a new user
+// User registration endpoint
 app.post('/api/register', async (req, res) => {
+    console.log('Registration request body:', req.body); // Log incoming request data
     const { username, email, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
+
+    if (!username || !email || !password) {
+        return res.status(400).json({ error: "Username, email, and password are required." });
+    }
 
     try {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
         const result = await pool.query(
             'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING *',
             [username, email, hashedPassword]
@@ -38,9 +46,14 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// Endpoint to login a user
+// User login endpoint
 app.post('/api/login', async (req, res) => {
+    console.log('Login request body:', req.body); // Log incoming request data
     const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ error: "Username and password are required." });
+    }
 
     try {
         const result = await pool.query(
@@ -59,13 +72,13 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ message: 'Invalid password' });
         }
 
-        res.status(200).json({ message: 'Login successful'});
+        res.status(200).json({ message: 'Login successful' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Endpoint to get all pantry items
+// Existing pantry endpoints
 app.get('/api/pantry', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM pantry_items WHERE user_id = $1', [1]); // Assuming user_id = 1 for now
@@ -75,7 +88,6 @@ app.get('/api/pantry', async (req, res) => {
     }
 });
 
-// Endpoint to add a new pantry item
 app.post('/api/pantry', async (req, res) => {
     const { name, quantity, unit, category, dateAdded } = req.body;
     try {
@@ -89,13 +101,12 @@ app.post('/api/pantry', async (req, res) => {
     }
 });
 
-// Endpoint to update a pantry item quantity
 app.patch('/api/pantry/:id', async (req, res) => {
     const { id } = req.params;
     const { quantity } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE pantry_items SET quantity = $1 WHERE id = $2 RETURNING *',
+            'UPDATE pantry_items SET quantity = $1 WHERE pantry_item_id = $2 RETURNING *',
             [quantity, id]
         );
         res.status(200).json(result.rows[0]);
@@ -104,11 +115,10 @@ app.patch('/api/pantry/:id', async (req, res) => {
     }
 });
 
-// Endpoint to delete a pantry item
 app.delete('/api/pantry/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        await pool.query('DELETE FROM pantry_items WHERE id = $1', [id]);
+        await pool.query('DELETE FROM pantry_items WHERE pantry_item_id = $1', [id]);
         res.status(204).send();
     } catch (err) {
         res.status(500).json({ error: err.message });
