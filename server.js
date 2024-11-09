@@ -15,12 +15,13 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
 const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'recipe_db',
-    password: 'password',
-    port: 5432,
+    user: apiFile["user"],
+    host: apiFile["host"],
+    database: apiFile["database"],
+    password: apiFile["password"],
+    port: apiFile["port"],
 });
 
 // User registration endpoint
@@ -78,22 +79,31 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Existing pantry endpoints
 app.get('/api/pantry', async (req, res) => {
+    const userId = req.body.user_id; // Get user_id dynamically
+    if (!userId) {
+        return res.status(400).json({ error: "User ID is required." });
+    }
     try {
-        const result = await pool.query('SELECT * FROM pantry_items WHERE user_id = $1', [1]); // Assuming user_id = 1 for now
+        const result = await pool.query('SELECT * FROM pantry_items WHERE user_id = $1', [userId]);
         res.status(200).json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
+
 app.post('/api/pantry', async (req, res) => {
-    const { name, quantity, unit, category, dateAdded } = req.body;
+    const { user_id, name, quantity, unit, category, dateAdded } = req.body;
+    
+    if (!user_id || !name || !quantity) {
+        return res.status(400).json({ error: "User ID, name, and quantity are required." });
+    }
+
     try {
         const result = await pool.query(
             'INSERT INTO pantry_items (user_id, item_name, quantity, unit, category, date_added) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [1, name, quantity, unit, category, dateAdded] // Assuming user_id = 1 for now
+            [user_id, name, quantity, unit, category, dateAdded]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {

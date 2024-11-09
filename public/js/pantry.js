@@ -2,11 +2,21 @@
 let pantryItems = [];
 const LOW_STOCK_THRESHOLD = 2;
 
-document.addEventListener('DOMContentLoaded', function() {
-    loadPantryItems();
-    setupEventListeners();
-    renderPantry();
-});
+// Replace with the actual user ID retrieved from authentication logic
+// const userId = /* dynamically retrieved user ID */;
+
+// document.addEventListener('DOMContentLoaded', function() {
+//     // Check if user is logged in
+//     if (!userId) {
+//         showNotification('Please log in to access your pantry.');
+//         window.location.href = '/login';
+//         return;
+//     }
+
+//     loadPantryItems();
+//     setupEventListeners();
+//     renderPantry();
+// });
 
 function setupEventListeners() {
     // Add item button
@@ -33,7 +43,7 @@ async function handleAddItem(event) {
     event.preventDefault();
 
     const newItem = {
-        user_id: 1, // Replace with actual user_id from your auth system
+        user_id: userId,
         name: document.getElementById('itemName').value,
         quantity: parseFloat(document.getElementById('itemQuantity').value),
         unit: document.getElementById('itemUnit').value,
@@ -50,6 +60,12 @@ async function handleAddItem(event) {
             body: JSON.stringify(newItem)
         });
 
+        // if (response.status === 401 || response.status === 403) {
+        //     showNotification('Session expired. Please log in again.');
+        //     window.location.href = '/login';
+        //     return;
+        // }
+
         const addedItem = await response.json();
         pantryItems.push(addedItem);
         renderPantry();
@@ -59,16 +75,25 @@ async function handleAddItem(event) {
         document.getElementById('addItemModal').style.display = 'none';
     } catch (error) {
         console.error('Error adding item:', error);
+        showNotification('Error adding item.');
     }
 }
 
 async function loadPantryItems() {
     try {
-        const response = await fetch('/api/pantry?user_id=1'); // Replace with actual user_id
+        // const response = await fetch(`/api/pantry?user_id=${userId}`);
+        
+        // if (response.status === 401 || response.status === 403) {
+        //     showNotification('Session expired. Please log in again.');
+        //     window.location.href = '/login';
+        //     return;
+        // }
+        
         pantryItems = await response.json();
         renderPantry();
     } catch (error) {
         console.error('Error loading pantry items:', error);
+        //showNotification('Error loading pantry items');
     }
 }
 
@@ -126,14 +151,22 @@ async function adjustQuantity(itemId, change) {
                 body: JSON.stringify({ quantity: newQuantity })
             });
 
+            // if (response.status === 401 || response.status === 403) {
+            //     showNotification('Session expired. Please log in again.');
+            //     window.location.href = '/login';
+            //     return;
+            // }
+
             if (response.ok) {
                 item.quantity = newQuantity;
                 renderPantry();
             } else {
                 console.error('Error adjusting quantity:', response.statusText);
+                //showNotification('Error adjusting quantity.');
             }
         } catch (error) {
             console.error('Error adjusting quantity:', error);
+            //showNotification('Error adjusting quantity.');
         }
     }
 }
@@ -145,14 +178,22 @@ async function removeItem(itemId) {
                 method: 'DELETE'
             });
 
+            // if (response.status === 401 || response.status === 403) {
+            //     showNotification('Session expired. Please log in again.');
+            //     window.location.href = '/login';
+            //     return;
+            // }
+
             if (response.ok) {
                 pantryItems = pantryItems.filter(item => item.pantry_item_id !== itemId);
                 renderPantry();
             } else {
                 console.error('Error removing item:', response.statusText);
+                //showNotification('Error removing item.');
             }
         } catch (error) {
             console.error('Error removing item:', error);
+            //showNotification('Error removing item.');
         }
     }
 }
