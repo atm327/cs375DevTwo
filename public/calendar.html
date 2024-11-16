@@ -7,68 +7,72 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-content">
-            <h1>Recipe Meal Planner</h1>
-            <div class="nav-links">
-                <a href="index.html">Search</a>
-                <a href="calendar.html" class="active">Meal Calendar</a>
-                <a href="pantry.html">My Pantry</a>
-            </div>
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="nav-content">
+        <h1>Recipe Meal Planner</h1>
+        <div class="nav-links">
+            <a href="index.html">Search</a>
+            <a href="calendar.html" class="active">Meal Calendar</a>
+            <a href="pantry.html">My Pantry</a>
+            <a href="login.html">Login</a>
         </div>
-    </nav>
+    </div>
+</nav>
 
-    <div class="container">
-        <div class="calendar-section">
-            <div class="calendar-header">
-                <button id="prevMonth" class="calendar-nav-btn">&lt; Previous</button>
-                <h2 id="currentMonthDisplay">November 2024</h2>
-                <button id="nextMonth" class="calendar-nav-btn">Next &gt;</button>
-            </div>
+<main class="container">
+    <!-- Calendar Section -->
+    <div class="calendar-header">
+        <button id="prevMonth" class="nav-button">Previous</button>
+        <h2 id="currentMonth">November 2024</h2>
+        <button id="nextMonth" class="nav-button">Next</button>
+    </div>
 
-            <div class="calendar-controls">
-                <button id="generateShoppingList" class="action-btn btn-primary">
-                    Generate Shopping List for Selected Week
-                </button>
-            </div>
+    <button id="generateList" class="btn-primary">
+        Generate Shopping List for Selected Week
+    </button>
 
-            <div class="weekdays">
-                <div>Sunday</div>
-                <div>Monday</div>
-                <div>Tuesday</div>
-                <div>Wednesday</div>
-                <div>Thursday</div>
-                <div>Friday</div>
-                <div>Saturday</div>
-            </div>
-
-            <div id="calendar-grid" class="calendar-grid">
-                <!-- Calendar days will be generated here -->
-            </div>
+    <!-- Calendar Grid -->
+    <div class="calendar">
+        <!-- Days of Week Header -->
+        <div class="calendar-row weekdays">
+            <div>Sun</div>
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
         </div>
 
-        <!-- Recipe Assignment Modal -->
-        <div id="meal-modal" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <div class="meal-assignment">
-                    <h3>Add Meal for <span id="selectedDate"></span></h3>
-                    <div class="meal-timing">
-                        <select id="mealTime">
-                            <option value="breakfast">Breakfast</option>
-                            <option value="lunch">Lunch</option>
-                            <option value="dinner">Dinner</option>
-                        </select>
-                    </div>
-                    <div class="recipe-search">
-                        <input type="text" id="recipeSearch" placeholder="Search for a recipe">
-                        <div id="searchResults" class="search-results"></div>
-                    </div>
-                </div>
-            </div>
+        <!-- Calendar Days -->
+        <div id="calendar-grid" class="calendar-grid">
+            <!-- Days will be added here by JavaScript -->
         </div>
     </div>
 
-    <script src="js/calendar.js"></script>
+    <!-- Add Meal Modal -->
+    <div id="meal-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add Meal for <span id="selectedDate"></span></h3>
+
+            <div class="meal-form">
+                <select id="mealTime">
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                </select>
+
+                <input type="text" id="recipeSearch"
+                       placeholder="Search for a recipe">
+
+                <div id="searchResults"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="js/calendar.js"></script>
 </body>
 </html>

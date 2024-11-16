@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 // Pantry state management
 let pantryItems = [];
 const LOW_STOCK_THRESHOLD = 2;
@@ -63,11 +64,51 @@ function renderPantry() {
             const itemElement = createPantryItemElement(item);
             itemsContainer.appendChild(itemElement);
         });
+=======
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('addItemForm');
+    const addButton = document.getElementById('addItemBtn');
+    const modal = document.getElementById('addItemModal');
+    const closeButton = document.querySelector('.close');
+    const messageDiv = document.getElementById('message');
+    const categoryContainers = {
+        produce: document.querySelector('#produce .category-items'),
+        dairy: document.querySelector('#dairy .category-items'),
+        meat: document.querySelector('#meat .category-items'),
+        grains: document.querySelector('#grains .category-items'),
+        spices: document.querySelector('#spices .category-items'),
+        canned: document.querySelector('#canned .category-items')
+    };
+
+    // Store pantry items
+    let pantryItems = [];
+
+    // Replace with the actual user ID retrieved from authentication logic
+    // const userId = /* dynamically retrieved user ID */;
+    // document.addEventListener('DOMContentLoaded', function() {
+    //     // Check if user is logged in
+    //     if (!userId) {
+    //         showNotification('Please log in to access your pantry.');
+    //         window.location.href = '/login';
+    //         return;
+    //     }
+    //     loadPantryItems();
+    //     setupEventListeners();
+    //     renderPantry();
+    // });
+
+    // Show modal when add button is clicked
+    addButton.addEventListener('click', function() {
+        modal.style.display = 'block';
+>>>>>>> Stashed changes
     });
 
-    checkLowStock();
-}
+    // Hide modal when X is clicked
+    closeButton.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
 
+<<<<<<< Updated upstream
 function createPantryItemElement(item) {
     const div = document.createElement('div');
     div.className = 'pantry-item';
@@ -106,28 +147,119 @@ function removeItem(itemId) {
         renderPantry();
     }
 }
+=======
+    // Handle adding new item
+    form.addEventListener('submit', async function(event) {
+        event.preventDefault();
 
-function filterPantryItems() {
-    const searchTerm = document.getElementById('pantrySearch').value.toLowerCase();
-    const categoryFilter = document.getElementById('categoryFilter').value;
+        // Get values from form
+        const item = {
+            name: document.getElementById('itemName').value,
+            quantity: document.getElementById('itemQuantity').value,
+            unit: document.getElementById('itemUnit').value,
+            category: document.getElementById('itemCategory').value
+        };
 
-    const categories = document.querySelectorAll('.category-section');
-    categories.forEach(category => {
-        if (categoryFilter === 'all' || category.id === categoryFilter) {
-            category.style.display = 'block';
-            const items = pantryItems.filter(item => 
-                item.category === category.id &&
-                item.name.toLowerCase().includes(searchTerm)
-            );
-            
-            const itemsContainer = category.querySelector('.category-items');
-            itemsContainer.innerHTML = '';
-            items.forEach(item => {
-                itemsContainer.appendChild(createPantryItemElement(item));
+        try {
+            const response = await fetch('/api/pantry', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(item)
             });
-        } else {
-            category.style.display = 'none';
+
+            if (!response.ok) {
+                throw new Error('Failed to add item');
+            }
+
+            const newItem = await response.json();
+
+            // Add to our list
+            pantryItems.push(newItem);
+
+            form.reset();
+            modal.style.display = 'none';
+
+            showPantryItems();
+            showMessage('Item added successfully');
+
+        } catch (error) {
+            console.log('Error:', error);
+            showMessage('Error adding item');
         }
+    });
+
+    // Display pantry items
+    function showPantryItems() {
+        // Clear all containers first
+        for (let category in categoryContainers) {
+            clearContainer(categoryContainers[category]);
+        }
+
+        // Add items to their categories
+        pantryItems.forEach(function(item) {
+            if (categoryContainers[item.category]) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'pantry-item';
+
+                // Create info section
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'item-info';
+
+                const nameSpan = document.createElement('strong');
+                nameSpan.textContent = item.name;
+                infoDiv.appendChild(nameSpan);
+
+                const quantitySpan = document.createElement('span');
+                quantitySpan.textContent = ' ' + item.quantity + ' ' + item.unit;
+                infoDiv.appendChild(quantitySpan);
+
+                itemDiv.appendChild(infoDiv);
+
+                // Create delete button
+                const actionDiv = document.createElement('div');
+                actionDiv.className = 'item-actions';
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Remove';
+                deleteButton.addEventListener('click', function() {
+                    deleteItem(item.id);
+                });
+                actionDiv.appendChild(deleteButton);
+
+                itemDiv.appendChild(actionDiv);
+                categoryContainers[item.category].appendChild(itemDiv);
+            }
+        });
+    }
+
+    // Delete item function
+    async function deleteItem(id) {
+        try {
+            const response = await fetch('/api/pantry/' + id, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete item');
+            }
+>>>>>>> Stashed changes
+
+            // Remove from our list
+            pantryItems = pantryItems.filter(function(item) {
+                return item.id !== id;
+            });
+
+            // Update display and show message
+            showPantryItems();
+            showMessage('Item removed');
+
+        } catch (error) {
+            console.log('Error:', error);
+            showMessage('Error removing item');
+        }
+<<<<<<< Updated upstream
     });
 }
 
@@ -145,9 +277,11 @@ function checkLowStock() {
         // Show notification (you can enhance this with a proper notification system)
         const notification = `You have ${lowStockItems.length} items running low!`;
         showNotification(notification);
+=======
+>>>>>>> Stashed changes
     }
-}
 
+<<<<<<< Updated upstream
 function showNotification(message) {
     // Simple notification - you can enhance this with a proper notification system
     const notificationDiv = document.createElement('div');
@@ -178,3 +312,40 @@ window.onclick = function(event) {
         event.target.style.display = 'none';
     }
 };
+=======
+    // Helper function to clear a container
+    function clearContainer(container) {
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+    }
+
+    // Show message function
+    function showMessage(text) {
+        messageDiv.textContent = text;
+        messageDiv.style.display = 'block';
+        // Hide message after 3 seconds
+        setTimeout(function() {
+            messageDiv.style.display = 'none';
+        }, 3000);
+    }
+    
+    async function loadPantryItems() {
+        try {
+            const response = await fetch('/api/pantry');
+            if (!response.ok) {
+                throw new Error('Failed to load items');
+            }
+
+            pantryItems = await response.json();
+            showPantryItems();
+
+        } catch (error) {
+            console.log('Error:', error);
+            showMessage('Error loading items');
+        }
+    }
+
+    loadPantryItems();
+});
+>>>>>>> Stashed changes

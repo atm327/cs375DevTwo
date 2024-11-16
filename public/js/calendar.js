@@ -1,247 +1,165 @@
-// Calendar state management
-let currentDate = new Date();
-let selectedDate = null;
-let mealPlan = {};  // Structure: { "2024-01-01": { breakfast: {...}, lunch: {...}, dinner: {...} } }
-
-// Initialize calendar
 document.addEventListener('DOMContentLoaded', function() {
-    renderCalendar();
-    setupEventListeners();
-    loadMealPlan();
-});
-
-function setupEventListeners() {
-    document.getElementById('prevMonth').addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        renderCalendar();
-    });
-
-    document.getElementById('nextMonth').addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        renderCalendar();
-    });
-
-    document.getElementById('generateShoppingList').addEventListener('click', generateShoppingList);
-
-    // Modal close button
-    document.querySelector('.close').addEventListener('click', () => {
-        document.getElementById('meal-modal').style.display = 'none';
-    });
-
-    // Recipe search input
-    document.getElementById('recipeSearch').addEventListener('input', debounce(searchRecipes, 500));
-}
-
-function renderCalendar() {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    
-    // Update month display
-    document.getElementById('currentMonthDisplay').textContent = 
-        new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' });
-
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startingDay = firstDay.getDay();
-    const totalDays = lastDay.getDate();
-
     const calendarGrid = document.getElementById('calendar-grid');
-    calendarGrid.innerHTML = '';
+    const monthDisplay = document.getElementById('currentMonth');
+    const prevButton = document.getElementById('prevButton');
+    const nextButton = document.getElementById('nextButton');
+    const modal = document.getElementById('meal-modal');
+    const closeButton = modal.querySelector('.close');
+    const selectedDateDisplay = document.getElementById('selectedDate');
 
-    // Add empty cells for days before the first of the month
-    for (let i = 0; i < startingDay; i++) {
-        calendarGrid.appendChild(createDayElement());
-    }
-
-    // Add cells for each day of the month
-    for (let day = 1; day <= totalDays; day++) {
-        const dateString = formatDate(new Date(year, month, day));
-        const dayElement = createDayElement(day, dateString);
-        calendarGrid.appendChild(dayElement);
-
-        // Add meal plan if exists
-        if (mealPlan[dateString]) {
-            addMealPlanToDay(dayElement, mealPlan[dateString]);
+    document.getElementById('recipeSearch').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            addMealToCalendar();
         }
-    }
-}
-
-function createDayElement(day = '', dateString = '') {
-    const div = document.createElement('div');
-    div.className = 'calendar-day';
-    
-    if (day) {
-        div.innerHTML = `<div class="day-number">${day}</div>`;
-        div.setAttribute('data-date', dateString);
-        
-        div.addEventListener('click', () => {
-            selectedDate = dateString;
-            openMealModal(dateString);
-        });
-    }
-    
-    return div;
-}
-
-function addMealPlanToDay(dayElement, meals) {
-    Object.entries(meals).forEach(([mealTime, recipe]) => {
-        const mealDiv = document.createElement('div');
-        mealDiv.className = 'meal-item';
-        mealDiv.innerHTML = `
-            <strong>${mealTime}:</strong> ${recipe.title}
-            <button class="remove-meal" onclick="removeMeal('${dayElement.dataset.date}', '${mealTime}')">×</button>
-        `;
-        dayElement.appendChild(mealDiv);
     });
-}
 
-function openMealModal(date) {
-    document.getElementById('selectedDate').textContent = formatDisplayDate(date);
-    document.getElementById('meal-modal').style.display = 'block';
-    document.getElementById('recipeSearch').value = '';
-    document.getElementById('searchResults').innerHTML = '';
-}
+    // Track current date and meals
+    let currentDate = new Date();
+    let meals = {};  // Format: {'2024-11-15': {breakfast: {title: 'Oatmeal'}, dinner: {title: 'Pasta'}}}
 
-async function searchRecipes(event) {
-    const query = event.target.value;
-    if (!query) {
-        document.getElementById('searchResults').innerHTML = '';
-        return;
-    }
+    const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
 
-    try {
-        const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
-        const data = await response.json();
-        
-        const results = document.getElementById('searchResults');
-        results.innerHTML = '';
-        
-        data.forEach(recipe => {
-            const div = document.createElement('div');
-            div.className = 'recipe-result';
-            div.innerHTML = `
-                <img src="${recipe.image}" alt="${recipe.title}">
-                <span>${recipe.title}</span>
-            `;
-            div.addEventListener('click', () => assignMeal(recipe));
-            results.appendChild(div);
-        });
-    } catch (error) {
-        console.error('Error searching recipes:', error);
-    }
-}
-
-function assignMeal(recipe) {
-    const mealTime = document.getElementById('mealTime').value;
-    
-    // Save to meal plan
-    if (!mealPlan[selectedDate]) {
-        mealPlan[selectedDate] = {};
-    }
-    mealPlan[selectedDate][mealTime] = recipe;
-    
-    // Save to localStorage
-    saveMealPlan();
-    
-    // Update calendar
-    renderCalendar();
-    
-    // Close modal
-    document.getElementById('meal-modal').style.display = 'none';
-}
-
-function removeMeal(date, mealTime) {
-    if (mealPlan[date] && mealPlan[date][mealTime]) {
-        delete mealPlan[date][mealTime];
-        if (Object.keys(mealPlan[date]).length === 0) {
-            delete mealPlan[date];
+    function updateCalendar() {
+        // Remove old calendar content
+        while (calendarGrid.firstChild) {
+            calendarGrid.removeChild(calendarGrid.firstChild);
         }
-        saveMealPlan();
-        renderCalendar();
-    }
-}
 
-function generateShoppingList() {
-    const startOfWeek = getStartOfWeek(currentDate);
-    const endOfWeek = getEndOfWeek(currentDate);
-    let ingredients = new Map();
+        // Update displayed month/year
+        monthDisplay.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
 
-    // Collect all ingredients for the week
-    for (let date in mealPlan) {
-        const mealDate = new Date(date);
-        if (mealDate >= startOfWeek && mealDate <= endOfWeek) {
-            for (let mealTime in mealPlan[date]) {
-                const recipe = mealPlan[date][mealTime];
-                if (recipe.extendedIngredients) {
-                    recipe.extendedIngredients.forEach(ing => {
-                        if (ingredients.has(ing.name)) {
-                            ingredients.get(ing.name).amount += ing.amount;
-                        } else {
-                            ingredients.set(ing.name, {
-                                amount: ing.amount,
-                                unit: ing.unit
-                            });
+        const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+        const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+
+        // Add blank days
+        for (let i = 0; i < firstDay; i++) {
+            const blank = document.createElement('div');
+            blank.className = 'calendar-day';
+            calendarGrid.appendChild(blank);
+        }
+
+        // Add days with meals
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'calendar-day';
+
+            const dayNum = document.createElement('div');
+            dayNum.className = 'day-number';
+            dayNum.textContent = day;
+            dayDiv.appendChild(dayNum);
+
+            const dateString = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${day}`;
+
+            // Add meals if they exist
+            if (meals[dateString]) {
+                const mealList = document.createElement('div');
+                mealList.className = 'meal-list';
+
+                // Add each meal type
+                for (let type in meals[dateString]) {
+                    const mealDiv = document.createElement('div');
+                    mealDiv.className = 'meal-item';
+
+                    const mealText = document.createElement('span');
+                    mealText.textContent = `${type}: ${meals[dateString][type].title}`;
+                    mealDiv.appendChild(mealText);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '×';
+                    deleteBtn.onclick = function(e) {
+                        e.stopPropagation();  // Prevent modal from opening
+                        delete meals[dateString][type];
+                        if (Object.keys(meals[dateString]).length === 0) {
+                            delete meals[dateString];
                         }
-                    });
+                        updateCalendar();
+                    };
+                    mealDiv.appendChild(deleteBtn);
+
+                    mealList.appendChild(mealDiv);
                 }
+                dayDiv.appendChild(mealList);
             }
+
+            // Add click handler for modal
+            dayDiv.onclick = function() {
+                selectedDateDisplay.textContent = new Date(currentDate.getFullYear(),
+                    currentDate.getMonth(), day).toLocaleDateString();
+                modal.style.display = 'block';
+                // Store selected date for adding meals
+                modal.dataset.selectedDate = dateString;
+            };
+
+            calendarGrid.appendChild(dayDiv);
         }
     }
 
-    // Display shopping list
-    alert('Shopping List:\n\n' + 
-        Array.from(ingredients.entries())
-            .map(([name, { amount, unit }]) => `${name}: ${amount} ${unit}`)
-            .join('\n')
-    );
-}
-
-// Utility functions
-function formatDate(date) {
-    return date.toISOString().split('T')[0];
-}
-
-function formatDisplayDate(dateString) {
-    return new Date(dateString).toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-}
-
-function getStartOfWeek(date) {
-    const start = new Date(date);
-    start.setDate(start.getDate() - start.getDay());
-    return start;
-}
-
-function getEndOfWeek(date) {
-    const end = new Date(date);
-    end.setDate(end.getDate() - end.getDay() + 6);
-    return end;
-}
-
-function loadMealPlan() {
-    const saved = localStorage.getItem('mealPlan');
-    if (saved) {
-        mealPlan = JSON.parse(saved);
-        renderCalendar();
-    }
-}
-
-function saveMealPlan() {
-    localStorage.setItem('mealPlan', JSON.stringify(mealPlan));
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
+    // Month navigation
+    if (prevButton) {
+        prevButton.onclick = function() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            updateCalendar();
         };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
+    }
+
+    if (nextButton) {
+        nextButton.onclick = function() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            updateCalendar();
+        };
+    }
+
+    // Modal handling
+    closeButton.onclick = function() {
+        modal.style.display = 'none';
     };
-}
+
+    window.onclick = function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    // Public function to add meals
+    window.addMeal = function(type, recipe) {
+        const dateString = modal.dataset.selectedDate;
+        if (!dateString) return;
+
+        if (!meals[dateString]) {
+            meals[dateString] = {};
+        }
+        meals[dateString][type] = recipe;
+        updateCalendar();
+        modal.style.display = 'none';
+    };
+
+    function addMealToCalendar() {
+        const mealTime = document.getElementById('mealTime').value;
+        const recipe = document.getElementById('recipeSearch').value.trim();
+        const selectedDate = document.getElementById('selectedDate').textContent;
+
+        if (!recipe) {
+            alert('Please enter a recipe name!');
+            return;
+        }
+
+        // Save the meal to the calendar
+        const dateString = modal.dataset.selectedDate;
+        if (!meals[dateString]) {
+            meals[dateString] = {};
+        }
+        meals[dateString][mealTime] = { title: recipe };
+
+        updateCalendar();
+
+        document.getElementById('recipeSearch').value = '';
+        modal.style.display = 'none';
+    }
+
+
+    // Initialize calendar
+    updateCalendar();
+});
