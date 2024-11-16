@@ -231,7 +231,6 @@ body {
     }
 }
 
-
 /* Calendar Styles */
 .calendar {
     margin: 20px 0;
@@ -240,14 +239,12 @@ body {
     padding: 20px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-
 .calendar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
 }
-
 .nav-button {
     padding: 8px 16px;
     background: #f4f4f4;
@@ -255,7 +252,6 @@ body {
     border-radius: 4px;
     cursor: pointer;
 }
-
 .weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -265,7 +261,6 @@ body {
     padding: 10px 0;
     border-radius: 4px;
 }
-
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -274,21 +269,18 @@ body {
     border: 1px solid #ddd;
     border-radius: 4px;
 }
-
 .calendar-day {
     min-height: 100px;
     padding: 10px;
     background: white;
     position: relative;
 }
-
 .day-number {
     position: absolute;
     top: 5px;
     right: 5px;
     color: #666;
 }
-
 .meal-item {
     margin-top: 25px;
     padding: 5px;
@@ -299,22 +291,55 @@ body {
     justify-content: space-between;
     align-items: center;
 }
-
 .meal-item button {
     background: none;
     border: none;
     cursor: pointer;
     color: #666;
 }
-
-/* Make calendar responsive */
+/ calendar modal styles/
+.search-results {
+    margin-top: 20px;
+}
+.recipe-result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 0;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+.recipe-result button {
+    padding: 5px 10px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+/ Make calendar responsive */
 @media (max-width: 768px) {
     .calendar-day {
         min-height: 80px;
         font-size: 0.9em;
     }
-
     .meal-item {
         font-size: 0.8em;
     }
+
 }
