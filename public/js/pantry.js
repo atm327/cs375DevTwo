@@ -15,13 +15,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let pantryItems = [];
 
-    // Add Shopping List button
     const generateBtn = document.createElement('button');
     generateBtn.textContent = 'Generate Shopping List';
     const pantryHeader = document.querySelector('.pantry-header');
     pantryHeader.appendChild(generateBtn);
 
-    // Add click handler for shopping list
     generateBtn.addEventListener('click', function() {
         const today = new Date();
         const nextWeek = new Date(today);
@@ -48,17 +46,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
-    // Show modal when add button is clicked
     addButton.addEventListener('click', function() {
         modal.style.display = 'block';
     });
 
-    // Hide modal when X is clicked
     closeButton.addEventListener('click', function() {
         modal.style.display = 'none';
     });
 
-    // Handle adding new item
     form.addEventListener('submit', async function(event) {
         event.preventDefault();
 
@@ -101,12 +96,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('lowStockModal');
         const listContainer = document.getElementById('lowStockItems');
 
-        // Clear previous items
         while (listContainer.firstChild) {
             listContainer.removeChild(listContainer.firstChild);
         }
 
-        // Add heading
         const heading = document.createElement('h3');
         heading.textContent = 'Shopping List';
         listContainer.appendChild(heading);
@@ -129,14 +122,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showPantryItems() {
-        // Clear all containers first
         Object.values(categoryContainers).forEach(container => {
             while (container.firstChild) {
                 container.removeChild(container.firstChild);
             }
         });
 
-        // Add items to their categories
         pantryItems.forEach(function(item) {
             const container = categoryContainers[item.category];
             if (container) {
@@ -178,7 +169,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('Failed to delete item');
             }
 
-            // Reload items instead of filtering locally
             await loadPantryItems();
             showMessage('Item removed');
 

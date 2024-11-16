@@ -8,7 +8,7 @@ const { Pool } = require("pg");
 const app = express();
 const apiFile = require("./env.json");
 const apiKey = apiFile["api_key"];
-const baseUrl = "https://api.spoonacular.com/recipes";
+const baseUrl = "https://api.spoonacular.com/recipes"; 
 const apiUrl = "https://api.spoonacular.com/recipes";
 const port = 3000;
 const hostname = "localhost";
@@ -128,7 +128,7 @@ app.get('/api/shopping-list', async (req, res) => {
     }
 });
 
-// Add or update pantry item (similar to your existing pantry endpoints)
+// Add or update pantry item
 app.post('/api/pantry', async (req, res) => {
     try {
         const { item_name, quantity, unit, category } = req.body;
@@ -186,11 +186,11 @@ app.get('/api/findByIngredients', async (req, res) => {
         const response = await fetch(
             `${apiUrl}/findByIngredients?apiKey=${apiKey}&ingredients=${ingredients}&number=${number}`
         );
-
+        
         if (!response.ok) {
             throw new Error('API request failed');
         }
-
+        
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -201,7 +201,7 @@ app.get('/api/findByIngredients', async (req, res) => {
 
 app.get('/api/search', async (req, res) => {
     const { query } = req.query;
-
+    
     if (!query) {
         res.status(400).json({ error: 'Search query is required' });
         return;
@@ -211,11 +211,11 @@ app.get('/api/search', async (req, res) => {
         const response = await fetch(
             `${apiUrl}/complexSearch?apiKey=${apiKey}&query=${query}&number=5`
         );
-
+        
         if (!response.ok) {
             throw new Error('API request failed');
         }
-
+        
         const data = await response.json();
         res.json(data.results);
     } catch (error) {
@@ -231,11 +231,11 @@ app.get('/api/recipe/:id', async (req, res) => {
         const response = await fetch(
             `${apiUrl}/${id}/information?apiKey=${apiKey}`
         );
-
+        
         if (!response.ok) {
             throw new Error('API request failed');
         }
-
+        
         const recipe = await response.json();
         res.json(recipe);
     } catch (error) {
@@ -264,7 +264,6 @@ app.post('/api/calendar', async (req, res) => {
     }
 });
 
-// Start server
 app.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}`);
 });

@@ -58,16 +58,21 @@
             <h3>Add Meal for <span id="selectedDate"></span></h3>
 
             <div class="meal-form">
-                <select id="mealTime">
-                    <option value="breakfast">Breakfast</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="dinner">Dinner</option>
-                </select>
+                <div class="form-group">
+                    <label for="mealTime">Meal Time:</label>
+                    <select id="mealTime">
+                        <option value="breakfast">Breakfast</option>
+                        <option value="lunch">Lunch</option>
+                        <option value="dinner">Dinner</option>
+                    </select>
+                </div>
 
-                <input type="text" id="recipeSearch"
-                       placeholder="Search for a recipe">
+                <div class="form-group">
+                    <label for="recipeSearch">Search Recipe:</label>
+                    <input type="text" id="recipeSearch" placeholder="Type recipe name and press Enter">
+                </div>
 
-                <div id="searchResults"></div>
+                <div id="searchResults" class="search-results"></div>
             </div>
         </div>
     </div>
