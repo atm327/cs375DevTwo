@@ -1,13 +1,6 @@
 const axios = require("axios");
 const express = require("express");
 const path = require("path");
-<<<<<<< Updated upstream
-const app = express();
-
-const apiFile = require(path.join(__dirname, 'env.json'));
-const apiKey = apiFile["api_key"];
-const baseUrl = "https://api.spoonacular.com/recipes";  // Direct URL
-=======
 const bcrypt = require('bcryptjs');
 const { Pool } = require("pg");
 
@@ -17,16 +10,13 @@ const apiFile = require("./env.json");
 const apiKey = apiFile["api_key"];
 const baseUrl = "https://api.spoonacular.com/recipes";
 const apiUrl = "https://api.spoonacular.com/recipes";
->>>>>>> Stashed changes
 const port = 3000;
 const hostname = "localhost";
 
 app.use(express.static("public"));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-<<<<<<< Updated upstream
-// Endpoint for searching recipes by ingredients
-=======
 // Database setup
 const pool = new Pool({
     user: apiFile["user"],
@@ -91,33 +81,82 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// Get shopping list based on calendar meals
+app.get('/api/shopping-list', async (req, res) => {
+    try {
+        const startDate = req.query.startDate;
+        const endDate = req.query.endDate;
+
+        if (!startDate || !endDate) {
+            return res.status(400).json({ error: 'Dates are required' });
+        }
+
+        // Get meals for date range
+        const result = await pool.query(
+            'SELECT ingredients FROM calendar_meals WHERE date BETWEEN $1 AND $2',
+            [startDate, endDate]
+        );
+
+        // Get pantry items
+        const pantryResult = await pool.query(
+            'SELECT item_name FROM pantry_items'
+        );
+
+        // Create lists (using Sets to avoid duplicates)
+        const neededItems = new Set();
+        const pantryItems = new Set();
+
+        // Add ingredients from meals
+        result.rows.forEach(row => {
+            neededItems.add(row.ingredients);
+        });
+
+        // Add pantry items
+        pantryResult.rows.forEach(row => {
+            pantryItems.add(row.item_name);
+        });
+
+        // Filter out items we already have
+        const shoppingList = Array.from(neededItems)
+            .filter(item => !pantryItems.has(item));
+
+        res.json({ items: shoppingList });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Could not generate shopping list' });
+    }
+});
+
+// Add or update pantry item (similar to your existing pantry endpoints)
+app.post('/api/pantry', async (req, res) => {
+    try {
+        const { item_name, quantity, unit, category } = req.body;
+
+        if (!item_name || !quantity || !unit || !category) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        const result = await pool.query(
+            'INSERT INTO pantry_items (item_name, quantity, unit, category) VALUES ($1, $2, $3, $4) RETURNING *',
+            [item_name, quantity, unit, category]
+        );
+
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error adding pantry item:', error);
+        res.status(500).json({ error: 'Could not add item' });
+    }
+});
+
+// Get all pantry items
 app.get('/api/pantry', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM pantry_items');
         res.json(result.rows);
     } catch (error) {
-        console.log('Database error:', error);
-        res.status(500).json({ error: 'Could not get pantry items' });
-    }
-});
-
-app.post('/api/pantry', async (req, res) => {
-    const { name, quantity, unit, category } = req.body;
-
-    if (!name || !quantity || !category) {
-        res.status(400).json({ error: 'Missing required fields' });
-        return;
-    }
-
-    try {
-        const result = await pool.query(
-            'INSERT INTO pantry_items (item_name, quantity, unit, category) VALUES ($1, $2, $3, $4) RETURNING *',
-            [name, quantity, unit, category]
-        );
-        res.json(result.rows[0]);
-    } catch (error) {
-        console.log('Database error:', error);
-        res.status(500).json({ error: 'Could not add item' });
+        console.error('Error getting pantry items:', error);
+        res.status(500).json({ error: 'Could not get items' });
     }
 });
 
@@ -134,7 +173,6 @@ app.delete('/api/pantry/:id', async (req, res) => {
 });
 
 // Recipe search routes
->>>>>>> Stashed changes
 app.get('/api/findByIngredients', async (req, res) => {
     const ingredients = req.query.ingredients;
     const number = req.query.number || 5;
@@ -144,25 +182,7 @@ app.get('/api/findByIngredients', async (req, res) => {
         return;
     }
 
-    console.log('Requesting URL:', url.replace(apiKey, 'API_KEY')); // Log URL (hide API key)
-
     try {
-<<<<<<< Updated upstream
-        const response = await axios.get(url);
-        console.log('API Response Status:', response.status);
-        res.status(200).json(response.data);
-    } catch (error) {
-        console.error('API Error:', {
-            status: error.response?.status,
-            message: error.response?.data?.message || error.message,
-            data: error.response?.data
-        });
-        
-        res.status(error.response?.status || 500).json({
-            error: error.response?.data?.message || 'Internal server error',
-            details: error.response?.data
-        });
-=======
         const response = await fetch(
             `${apiUrl}/findByIngredients?apiKey=${apiKey}&ingredients=${ingredients}&number=${number}`
         );
@@ -176,33 +196,10 @@ app.get('/api/findByIngredients', async (req, res) => {
     } catch (error) {
         console.log('API error:', error);
         res.status(500).json({ error: 'Could not get recipes' });
->>>>>>> Stashed changes
     }
 });
 
-// Endpoint for searching recipes by name
 app.get('/api/search', async (req, res) => {
-<<<<<<< Updated upstream
-    const { query, cuisine, diet } = req.query;
-    const number = req.query.number || 5;
-    
-    // Construct URL with optional parameters
-    let url = `${baseUrl}/complexSearch?apiKey=${apiKey}&query=${query}&number=${number}`;
-    if (cuisine) url += `&cuisine=${cuisine}`;
-    if (diet) url += `&diet=${diet}`;
-    url += '&addRecipeInformation=true'; // This includes detailed recipe info in response
-    
-    console.log('Searching recipes:', url.replace(apiKey, 'API_KEY'));
-
-    try {
-        const response = await axios.get(url);
-        res.status(200).json(response.data.results); // Send just the results array
-    } catch (error) {
-        console.error('Recipe search error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json({
-            error: error.response?.data?.message || 'Failed to search recipes'
-        });
-=======
     const { query } = req.query;
 
     if (!query) {
@@ -224,11 +221,9 @@ app.get('/api/search', async (req, res) => {
     } catch (error) {
         console.log('API error:', error);
         res.status(500).json({ error: 'Could not search recipes' });
->>>>>>> Stashed changes
     }
 });
 
-// Endpoint for getting recipe details
 app.get('/api/recipe/:id', async (req, res) => {
     const id = req.params.id;
 
@@ -244,15 +239,28 @@ app.get('/api/recipe/:id', async (req, res) => {
         const recipe = await response.json();
         res.json(recipe);
     } catch (error) {
-<<<<<<< Updated upstream
-        console.error('Recipe details error:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json({
-            error: error.response?.data?.message || 'Failed to get recipe details'
-        });
-=======
         console.log('API error:', error);
         res.status(500).json({ error: 'Could not get recipe details' });
->>>>>>> Stashed changes
+    }
+});
+
+app.post('/api/calendar', async (req, res) => {
+    const { date, meal_type, recipe_name, ingredients } = req.body;
+
+    // Validate input
+    if (!date || !meal_type || !recipe_name) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const result = await pool.query(
+            'INSERT INTO calendar_meals (date, meal_type, recipe_name, ingredients) VALUES ($1, $2, $3, $4) RETURNING *',
+            [date, meal_type, recipe_name, ingredients]
+        );
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Could not save meal' });
     }
 });
 
