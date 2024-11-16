@@ -1,6 +1,4 @@
-// Function to search recipes by ingredients
 async function searchRecipesByIngredients(ingredients, recipeCount) {
-    // Check if ingredients is empty
     if (!ingredients) {
         const errorDiv = document.getElementById('error-message');
         errorDiv.textContent = 'Please enter ingredients';
@@ -8,7 +6,6 @@ async function searchRecipesByIngredients(ingredients, recipeCount) {
         return [];
     }
 
-    // Show loading message
     const recipesGrid = document.getElementById('recipes-grid');
     while (recipesGrid.firstChild) {
         recipesGrid.removeChild(recipesGrid.firstChild);
@@ -17,10 +14,8 @@ async function searchRecipesByIngredients(ingredients, recipeCount) {
     recipesGrid.appendChild(loadingText);
 
     try {
-        // Make the fetch request
         const response = await fetch(`/api/findByIngredients?ingredients=${ingredients}&number=${recipeCount}`);
 
-        // Check if response was successful
         if (!response.ok) {
             const errorDiv = document.getElementById('error-message');
             errorDiv.textContent = 'Error finding recipes';
@@ -35,7 +30,6 @@ async function searchRecipesByIngredients(ingredients, recipeCount) {
         return recipes;
 
     } catch (error) {
-        // Handle errors
         console.log('Error:', error);
         const errorDiv = document.getElementById('error-message');
         errorDiv.textContent = 'Failed to fetch recipes';
@@ -47,7 +41,6 @@ async function searchRecipesByIngredients(ingredients, recipeCount) {
 
 // Function to search recipes by name
 async function searchRecipesByName(recipeName, cuisine, diet) {
-    // Check if recipe name is empty
     if (!recipeName) {
         const errorDiv = document.getElementById('error-message');
         errorDiv.textContent = 'Please enter a recipe name';
@@ -55,7 +48,6 @@ async function searchRecipesByName(recipeName, cuisine, diet) {
         return [];
     }
 
-    // Show loading message
     const recipesGrid = document.getElementById('recipes-grid');
     while (recipesGrid.firstChild) {
         recipesGrid.removeChild(recipesGrid.firstChild);
@@ -91,7 +83,6 @@ async function searchRecipesByName(recipeName, cuisine, diet) {
         return recipes;
 
     } catch (error) {
-        // Handle any errors
         console.log('Error:', error);
         const errorDiv = document.getElementById('error-message');
         errorDiv.textContent = 'Failed to search recipes';
@@ -111,7 +102,6 @@ async function getRecipeDetails(recipeId) {
         return null;
     }
 
-    // Show loading message
     const recipeDetail = document.getElementById('recipe-detail');
     while (recipeDetail.firstChild) {
         recipeDetail.removeChild(recipeDetail.firstChild);
@@ -120,10 +110,8 @@ async function getRecipeDetails(recipeId) {
     recipeDetail.appendChild(loadingText);
 
     try {
-        // Make the fetch request
         const response = await fetch(`/api/recipe/${recipeId}`);
 
-        // Check if response was successful
         if (!response.ok) {
             const errorDiv = document.getElementById('error-message');
             errorDiv.textContent = 'Error getting recipe details';
@@ -138,7 +126,6 @@ async function getRecipeDetails(recipeId) {
         return recipe;
 
     } catch (error) {
-        // Handle any errors
         console.log('Error:', error);
         const errorDiv = document.getElementById('error-message');
         errorDiv.textContent = 'Failed to get recipe details';
@@ -148,28 +135,24 @@ async function getRecipeDetails(recipeId) {
     }
 }
 
-// Function to show error message
 function showError(message) {
     const errorDiv = document.getElementById('error-message');
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
 }
 
-// Function to clear error message
 function clearError() {
     const errorDiv = document.getElementById('error-message');
     errorDiv.textContent = '';
     errorDiv.style.display = 'none';
 }
 
-// Function to clear element contents
 function clearElement(element) {
     while (element.firstChild) {
         element.removeChild(element.firstChild);
     }
 }
 
-// Function to show loading state
 function showLoading(element) {
     clearElement(element);
     const loadingText = document.createTextNode('Loading...');
@@ -177,7 +160,6 @@ function showLoading(element) {
     return loadingText;
 }
 
-// Function to hide loading state
 function hideLoading(element, loadingText) {
     element.removeChild(loadingText);
 }
