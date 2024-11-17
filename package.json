@@ -14,6 +14,5 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "A web application that helps you find recipes, plan meals, and manage your pantry.  Built with HTML, CSS, JavaScript, and Node.js using the Spoonacular API.",
-  "devDependencies": {}
+  "description": ""
 }

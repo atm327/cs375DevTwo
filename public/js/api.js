@@ -1,165 +1,118 @@
-async function searchRecipesByIngredients(ingredients, recipeCount) {
-    if (!ingredients) {
-        const errorDiv = document.getElementById('error-message');
-        errorDiv.textContent = 'Please enter ingredients';
-        errorDiv.style.display = 'block';
-        return [];
-    }
+// public/js/api.js
+const API = {
+    // Find recipes by ingredients
+    findByIngredients: async (ingredients, number = 5) => {
+        try {
+            const response = await fetch(`/api/findByIngredients?ingredients=${ingredients}&number=${number}`);
+            if (!response.ok) throw new Error('Failed to fetch recipes');
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+    },
 
-    const recipesGrid = document.getElementById('recipes-grid');
-    while (recipesGrid.firstChild) {
-        recipesGrid.removeChild(recipesGrid.firstChild);
-    }
-    const loadingText = document.createTextNode('Loading...');
-    recipesGrid.appendChild(loadingText);
+    // Get detailed recipe information
+    getRecipeDetails: async (recipeId) => {
+        try {
+            const response = await fetch(`/api/recipe/${recipeId}`);
+            if (!response.ok) throw new Error('Failed to fetch recipe details');
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+    },
 
+    // Search recipes with complex parameters
+    searchRecipes: async (params) => {
+        try {
+            const queryParams = new URLSearchParams(params);
+            const response = await fetch(`/api/search?${queryParams}`);
+            if (!response.ok) throw new Error('Search failed');
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+    },
+
+    // Get random recipes
+    getRandomRecipes: async (number = 1) => {
+        try {
+            const response = await fetch(`/api/random?number=${number}`);
+            if (!response.ok) throw new Error('Failed to fetch random recipes');
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+    },
+
+    // Get recipe instructions
+    getRecipeInstructions: async (recipeId) => {
+        try {
+            const response = await fetch(`/api/recipe/${recipeId}/instructions`);
+            if (!response.ok) throw new Error('Failed to fetch instructions');
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+    }
+};
+
+// Example usage in your my_script.js
+document.getElementById('search-button').addEventListener('click', async function() {
+    const ingredients = document.getElementById('ingredients').value;
+    const recipeCount = document.getElementById('recipe-count').value;
+    
     try {
-        const response = await fetch(`/api/findByIngredients?ingredients=${ingredients}&number=${recipeCount}`);
-
-        if (!response.ok) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.textContent = 'Error finding recipes';
-            errorDiv.style.display = 'block';
-            recipesGrid.removeChild(loadingText);
-            return [];
-        }
-
-        // Get the recipe data
-        const recipes = await response.json();
-        recipesGrid.removeChild(loadingText);
-        return recipes;
-
+        showLoading(true);
+        const recipes = await API.findByIngredients(ingredients, recipeCount);
+        displayRecipes(recipes);
     } catch (error) {
-        console.log('Error:', error);
-        const errorDiv = document.getElementById('error-message');
-        errorDiv.textContent = 'Failed to fetch recipes';
-        errorDiv.style.display = 'block';
-        recipesGrid.removeChild(loadingText);
-        return [];
+        showError(error.message);
+    } finally {
+        showLoading(false);
     }
-}
+});
 
-// Function to search recipes by name
-async function searchRecipesByName(recipeName, cuisine, diet) {
-    if (!recipeName) {
-        const errorDiv = document.getElementById('error-message');
-        errorDiv.textContent = 'Please enter a recipe name';
-        errorDiv.style.display = 'block';
-        return [];
-    }
-
-    const recipesGrid = document.getElementById('recipes-grid');
-    while (recipesGrid.firstChild) {
-        recipesGrid.removeChild(recipesGrid.firstChild);
-    }
-    const loadingText = document.createTextNode('Loading...');
-    recipesGrid.appendChild(loadingText);
-
+// Function to display recipe details
+async function viewRecipeDetails(recipeId) {
     try {
-        // Build the URL with search parameters
-        let url = `/api/search?query=${recipeName}`;
-        if (cuisine && cuisine !== 'Any Cuisine') {
-            url += `&cuisine=${cuisine}`;
-        }
-        if (diet && diet !== 'Any Diet') {
-            url += `&diet=${diet}`;
-        }
-
-        // Make the fetch request
-        const response = await fetch(url);
-
-        // Check if response was successful
-        if (!response.ok) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.textContent = 'Error searching recipes';
-            errorDiv.style.display = 'block';
-            recipesGrid.removeChild(loadingText);
-            return [];
-        }
-
-        // Get the recipe data
-        const recipes = await response.json();
-        recipesGrid.removeChild(loadingText);
-        return recipes;
-
+        showLoading(true);
+        const [details, instructions] = await Promise.all([
+            API.getRecipeDetails(recipeId),
+            API.getRecipeInstructions(recipeId)
+        ]);
+        
+        // Create and show modal with recipe details
+        showRecipeModal(details, instructions);
     } catch (error) {
-        console.log('Error:', error);
-        const errorDiv = document.getElementById('error-message');
-        errorDiv.textContent = 'Failed to search recipes';
-        errorDiv.style.display = 'block';
-        recipesGrid.removeChild(loadingText);
-        return [];
+        showError('Failed to load recipe details');
+    } finally {
+        showLoading(false);
     }
 }
 
-// Function to get recipe details
-async function getRecipeDetails(recipeId) {
-    // Check if recipe ID is empty
-    if (!recipeId) {
-        const errorDiv = document.getElementById('error-message');
-        errorDiv.textContent = 'Recipe ID is missing';
-        errorDiv.style.display = 'block';
-        return null;
-    }
-
-    const recipeDetail = document.getElementById('recipe-detail');
-    while (recipeDetail.firstChild) {
-        recipeDetail.removeChild(recipeDetail.firstChild);
-    }
-    const loadingText = document.createTextNode('Loading recipe details...');
-    recipeDetail.appendChild(loadingText);
-
+// Example of complex search
+async function searchRecipesWithFilters() {
+    const searchParams = {
+        query: document.getElementById('search-query').value,
+        cuisine: document.getElementById('cuisine').value,
+        diet: document.getElementById('diet').value,
+        type: document.getElementById('meal-type').value,
+        maxReadyTime: document.getElementById('max-time').value
+    };
+    
     try {
-        const response = await fetch(`/api/recipe/${recipeId}`);
-
-        if (!response.ok) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.textContent = 'Error getting recipe details';
-            errorDiv.style.display = 'block';
-            recipeDetail.removeChild(loadingText);
-            return null;
-        }
-
-        // Get the recipe details
-        const recipe = await response.json();
-        recipeDetail.removeChild(loadingText);
-        return recipe;
-
+        showLoading(true);
+        const results = await API.searchRecipes(searchParams);
+        displayRecipes(results.results);
     } catch (error) {
-        console.log('Error:', error);
-        const errorDiv = document.getElementById('error-message');
-        errorDiv.textContent = 'Failed to get recipe details';
-        errorDiv.style.display = 'block';
-        recipeDetail.removeChild(loadingText);
-        return null;
+        showError('Search failed');
+    } finally {
+        showLoading(false);
     }
-}
-
-function showError(message) {
-    const errorDiv = document.getElementById('error-message');
-    errorDiv.textContent = message;
-    errorDiv.style.display = 'block';
-}
-
-function clearError() {
-    const errorDiv = document.getElementById('error-message');
-    errorDiv.textContent = '';
-    errorDiv.style.display = 'none';
-}
-
-function clearElement(element) {
-    while (element.firstChild) {
-        element.removeChild(element.firstChild);
-    }
-}
-
-function showLoading(element) {
-    clearElement(element);
-    const loadingText = document.createTextNode('Loading...');
-    element.appendChild(loadingText);
-    return loadingText;
-}
-
-function hideLoading(element, loadingText) {
-    element.removeChild(loadingText);
 }
