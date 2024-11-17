@@ -14,64 +14,92 @@
                 <a href="index.html">Search</a>
                 <a href="calendar.html">Meal Calendar</a>
                 <a href="pantry.html" class="active">My Pantry</a>
+                <a href="login.html" id="loginLink">Login</a>
             </div>
         </div>
     </nav>
 
-    <div class="container">
-        <div class="pantry-section">
+    <main class="container">
+        <section class="pantry-section">
+            <!-- Pantry Header -->
             <div class="pantry-header">
                 <h2>My Pantry</h2>
-                <button id="addItemBtn" class="action-btn btn-primary">Add Item</button>
+                <button id="addItemBtn" class="btn-primary">Add Item</button>
             </div>
 
-            <div class="pantry-search">
-                <input type="text" id="pantrySearch" placeholder="Search pantry items...">
-                <select id="categoryFilter">
-                    <option value="all">All Categories</option>
-                    <option value="produce">Produce</option>
-                    <option value="dairy">Dairy</option>
-                    <option value="meat">Meat</option>
-                    <option value="grains">Grains</option>
-                    <option value="spices">Spices</option>
-                    <option value="canned">Canned Goods</option>
-                </select>
-            </div>
+            <!-- Filter Controls -->
+            <div class="pantry-controls">
+                <div class="input-group">
+                    <label for="searchInput">Search Items:</label>
+                    <input type="text" id="searchInput" placeholder="Search pantry items...">
+                </div>
 
-            <div class="pantry-content">
-                <div class="pantry-categories">
-                    <!-- Produce Section -->
-                    <div class="category-section" id="produce">
-                        <h3>Produce</h3>
-                        <div class="category-items"></div>
-                    </div>
-
-                    <!-- Dairy Section -->
-                    <div class="category-section" id="dairy">
-                        <h3>Dairy</h3>
-                        <div class="category-items"></div>
-                    </div>
-
-                    <!-- Other sections will be populated dynamically -->
+                <div class="input-group">
+                    <label for="categoryFilter">Filter by Category:</label>
+                    <select id="categoryFilter">
+                        <option value="all">All Categories</option>
+                        <option value="produce">Produce</option>
+                        <option value="dairy">Dairy</option>
+                        <option value="meat">Meat</option>
+                        <option value="grains">Grains</option>
+                        <option value="spices">Spices</option>
+                        <option value="canned">Canned Goods</option>
+                    </select>
                 </div>
             </div>
-        </div>
+
+            <!-- Pantry Content -->
+            <div class="pantry-content">
+                <div id="produce" class="category-section">
+                    <h3>Produce</h3>
+                    <div class="category-items"></div>
+                </div>
+
+                <div id="dairy" class="category-section">
+                    <h3>Dairy</h3>
+                    <div class="category-items"></div>
+                </div>
+
+                <div id="meat" class="category-section">
+                    <h3>Meat</h3>
+                    <div class="category-items"></div>
+                </div>
+
+                <div id="grains" class="category-section">
+                    <h3>Grains</h3>
+                    <div class="category-items"></div>
+                </div>
+
+                <div id="spices" class="category-section">
+                    <h3>Spices</h3>
+                    <div class="category-items"></div>
+                </div>
+
+                <div id="canned" class="category-section">
+                    <h3>Canned Goods</h3>
+                    <div class="category-items"></div>
+                </div>
+            </div>
+        </section>
 
         <!-- Add Item Modal -->
         <div id="addItemModal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
                 <h3>Add Pantry Item</h3>
-                <form id="addItemForm">
-                    <div class="form-group">
+                
+                <form id="addItemForm" class="add-item-form">
+                    <div class="input-group">
                         <label for="itemName">Item Name:</label>
                         <input type="text" id="itemName" required>
                     </div>
-                    <div class="form-group">
+
+                    <div class="input-group">
                         <label for="itemQuantity">Quantity:</label>
                         <input type="number" id="itemQuantity" min="0" step="0.1" required>
                     </div>
-                    <div class="form-group">
+
+                    <div class="input-group">
                         <label for="itemUnit">Unit:</label>
                         <select id="itemUnit" required>
                             <option value="pieces">Pieces</option>
@@ -84,7 +112,8 @@
                             <option value="tsp">Teaspoons</option>
                         </select>
                     </div>
-                    <div class="form-group">
+
+                    <div class="input-group">
                         <label for="itemCategory">Category:</label>
                         <select id="itemCategory" required>
                             <option value="produce">Produce</option>
@@ -95,22 +124,25 @@
                             <option value="canned">Canned Goods</option>
                         </select>
                     </div>
-                    <button type="submit" class="action-btn btn-primary">Add Item</button>
+
+                    <button type="submit" class="btn-primary">Add Item</button>
                 </form>
             </div>
         </div>
 
-        <!-- Running Low Modal -->
         <div id="lowStockModal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <h3>Running Low</h3>
+                <h3>Low Stock Items</h3>
                 <div id="lowStockItems" class="low-stock-list">
-                    <!-- Low stock items will be listed here -->
+                    <!-- Low stock items will be added here by JavaScript -->
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- Error/Success Message Display -->
+        <div id="message" class="message"></div>
+    </main>
 
     <script src="js/pantry.js"></script>
 </body>

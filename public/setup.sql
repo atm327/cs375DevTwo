@@ -12,11 +12,27 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create the pantry_items table
+-- Table for storing saved recipes
+CREATE TABLE saved_recipes (
+    recipe_id SERIAL PRIMARY KEY,
+    recipe_name VARCHAR(100) NOT NULL,
+    ingredients TEXT NOT NULL
+);
+
+-- Table for calendar meals
+CREATE TABLE calendar_meals (
+    meal_id SERIAL PRIMARY KEY,
+    date DATE NOT NULL,
+    meal_type VARCHAR(20) NOT NULL,
+    recipe_name VARCHAR(100) NOT NULL,
+    ingredients TEXT NOT NULL
+);
+
+-- Table for pantry items
 CREATE TABLE pantry_items (
-    pantry_item_id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(user_id),
+    item_id SERIAL PRIMARY KEY,
     item_name VARCHAR(100) NOT NULL,
-    quantity VARCHAR(50),
-    expiration_date DATE
+    quantity INTEGER NOT NULL,
+    unit VARCHAR(50) NOT NULL,
+    category VARCHAR(50) NOT NULL
 );

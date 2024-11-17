@@ -5,9 +5,10 @@ const bcrypt = require('bcryptjs');
 const { Pool } = require("pg");
 
 const app = express();
-const apiFile = require(path.join(__dirname, 'env.json'));
+const apiFile = require("./env.json");
 const apiKey = apiFile["api_key"];
 const baseUrl = "https://api.spoonacular.com/recipes"; 
+const apiUrl = "https://api.spoonacular.com/recipes";
 const port = 3000;
 const hostname = "localhost";
 
@@ -15,13 +16,13 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
+// Database setup
 const pool = new Pool({
     user: apiFile["user"],
     host: apiFile["host"],
     database: apiFile["database"],
     password: apiFile["password"],
-    port: apiFile["port"],
+    port: apiFile["port"]
 });
 
 // User registration endpoint
@@ -79,102 +80,180 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-app.get('/api/pantry', async (req, res) => {
-    const userId = req.body.user_id; // Get user_id dynamically
-    if (!userId) {
-        return res.status(400).json({ error: "User ID is required." });
-    }
+// Get shopping list based on calendar meals
+app.get('/api/shopping-list', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM pantry_items WHERE user_id = $1', [userId]);
-        res.status(200).json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const startDate = req.query.startDate;
+        const endDate = req.query.endDate;
+
+        if (!startDate || !endDate) {
+            return res.status(400).json({ error: 'Dates are required' });
+        }
+
+        const result = await pool.query(
+            'SELECT ingredients FROM calendar_meals WHERE date BETWEEN $1 AND $2',
+            [startDate, endDate]
+        );
+
+        const pantryResult = await pool.query(
+            'SELECT item_name FROM pantry_items'
+        );
+
+        const neededItems = new Set();
+        const pantryItems = new Set();
+
+        result.rows.forEach(row => {
+            neededItems.add(row.ingredients);
+        });
+
+        pantryResult.rows.forEach(row => {
+            pantryItems.add(row.item_name);
+        });
+
+        const shoppingList = Array.from(neededItems)
+            .filter(item => !pantryItems.has(item));
+
+        res.json({ items: shoppingList });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Could not generate shopping list' });
     }
 });
 
-
+// Add or update pantry item
 app.post('/api/pantry', async (req, res) => {
-    const { user_id, name, quantity, unit, category, dateAdded } = req.body;
-    
-    if (!user_id || !name || !quantity) {
-        return res.status(400).json({ error: "User ID, name, and quantity are required." });
-    }
-
     try {
+        const { item_name, quantity, unit, category } = req.body;
+
+        if (!item_name || !quantity || !unit || !category) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
         const result = await pool.query(
-            'INSERT INTO pantry_items (user_id, item_name, quantity, unit, category, date_added) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [user_id, name, quantity, unit, category, dateAdded]
+            'INSERT INTO pantry_items (item_name, quantity, unit, category) VALUES ($1, $2, $3, $4) RETURNING *',
+            [item_name, quantity, unit, category]
         );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error adding pantry item:', error);
+        res.status(500).json({ error: 'Could not add item' });
     }
 });
 
-app.patch('/api/pantry/:id', async (req, res) => {
-    const { id } = req.params;
-    const { quantity } = req.body;
+// Get all pantry items
+app.get('/api/pantry', async (req, res) => {
     try {
-        const result = await pool.query(
-            'UPDATE pantry_items SET quantity = $1 WHERE pantry_item_id = $2 RETURNING *',
-            [quantity, id]
-        );
-        res.status(200).json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const result = await pool.query('SELECT * FROM pantry_items');
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error getting pantry items:', error);
+        res.status(500).json({ error: 'Could not get items' });
     }
 });
 
 app.delete('/api/pantry/:id', async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id;
+
     try {
         await pool.query('DELETE FROM pantry_items WHERE pantry_item_id = $1', [id]);
-        res.status(204).send();
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.json({ message: 'Item deleted' });
+    } catch (error) {
+        console.log('Database error:', error);
+        res.status(500).json({ error: 'Could not delete item' });
     }
 });
 
-// Existing endpoints for recipes
+// Recipe search routes
 app.get('/api/findByIngredients', async (req, res) => {
     const ingredients = req.query.ingredients;
     const number = req.query.number || 5;
-    const url = `${baseUrl}/findByIngredients?apiKey=${apiKey}&ingredients=${ingredients}&number=${number}&ranking=2`;
+
+    if (!ingredients) {
+        res.status(400).json({ error: 'Ingredients are required' });
+        return;
+    }
 
     try {
-        const response = await axios.get(url);
-        res.status(200).json(response.data);
+        const response = await fetch(
+            `${apiUrl}/findByIngredients?apiKey=${apiKey}&ingredients=${ingredients}&number=${number}`
+        );
+        
+        if (!response.ok) {
+            throw new Error('API request failed');
+        }
+        
+        const data = await response.json();
+        res.json(data);
     } catch (error) {
-        res.status(error.response?.status || 500).json({ error: error.response?.data?.message || 'Internal server error' });
+        console.log('API error:', error);
+        res.status(500).json({ error: 'Could not get recipes' });
     }
 });
 
 app.get('/api/search', async (req, res) => {
-    const { query, cuisine, diet } = req.query;
-    const number = req.query.number || 5;
+    const { query } = req.query;
     
-    let url = `${baseUrl}/complexSearch?apiKey=${apiKey}&query=${query}&number=${number}`;
-    if (cuisine) url += `&cuisine=${cuisine}`;
-    if (diet) url += `&diet=${diet}`;
-    url += '&addRecipeInformation=true';
+    if (!query) {
+        res.status(400).json({ error: 'Search query is required' });
+        return;
+    }
 
     try {
-        const response = await axios.get(url);
-        res.status(200).json(response.data.results);
+        const response = await fetch(
+            `${apiUrl}/complexSearch?apiKey=${apiKey}&query=${query}&number=5`
+        );
+        
+        if (!response.ok) {
+            throw new Error('API request failed');
+        }
+        
+        const data = await response.json();
+        res.json(data.results);
     } catch (error) {
-        res.status(error.response?.status || 500).json({ error: error.response?.data?.message || 'Failed to search recipes' });
+        console.log('API error:', error);
+        res.status(500).json({ error: 'Could not search recipes' });
     }
 });
 
 app.get('/api/recipe/:id', async (req, res) => {
     const id = req.params.id;
-    const url = `${baseUrl}/${id}/information?apiKey=${apiKey}`;
 
     try {
-        const response = await axios.get(url);
-        res.status(200).json(response.data);
+        const response = await fetch(
+            `${apiUrl}/${id}/information?apiKey=${apiKey}`
+        );
+        
+        if (!response.ok) {
+            throw new Error('API request failed');
+        }
+        
+        const recipe = await response.json();
+        res.json(recipe);
     } catch (error) {
-        res.status(error.response?.status || 500).json({ error: error.response?.data?.message || 'Failed to get recipe details' });
+        console.log('API error:', error);
+        res.status(500).json({ error: 'Could not get recipe details' });
+    }
+});
+
+app.post('/api/calendar', async (req, res) => {
+    const { date, meal_type, recipe_name, ingredients } = req.body;
+
+    // Validate input
+    if (!date || !meal_type || !recipe_name) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const result = await pool.query(
+            'INSERT INTO calendar_meals (date, meal_type, recipe_name, ingredients) VALUES ($1, $2, $3, $4) RETURNING *',
+            [date, meal_type, recipe_name, ingredients]
+        );
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Could not save meal' });
     }
 });
 
