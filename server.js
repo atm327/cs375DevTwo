@@ -321,12 +321,6 @@ app.post('/api/calendar', async (req, res) => {
     }
 });
 
-app.get('/api/check-login-status', (req, res) => {
-    res.set('Cache-Control', 'no-store');  // This will prevent caching
-    res.json({ username: req.session.username || null });
-});
-
-
 app.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}`);
 });

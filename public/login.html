@@ -43,9 +43,28 @@
                 <p>Already have an account? <a href="#" id="showLogin">Sign In</a></p>
             </form>
         </div>
+
+        <div class="user-info" style="display: none;">
+            <button id="signOutBtn">Sign Out</button>
+        </div>
     </div>
 
     <script>
+        // Check if the user is logged in when they visit the page
+        window.addEventListener('DOMContentLoaded', function() {
+            const username = localStorage.getItem('username');
+            if (username) {
+                // If user is logged in, display the user info section
+                document.getElementById('usernameDisplay').textContent = username;
+                document.querySelector('.login-form').style.display = 'none';
+                document.querySelector('.user-info').style.display = 'block';
+            } else {
+                // If user is not logged in, show the login form
+                document.querySelector('.login-form').style.display = 'block';
+                document.querySelector('.user-info').style.display = 'none';
+            }
+        });
+
         document.getElementById('showSignup').addEventListener('click', function() {
             document.querySelector('.login-form').style.display = 'none';
             document.querySelector('.signup-form').style.display = 'block';
@@ -56,7 +75,7 @@
             document.querySelector('.login-form').style.display = 'block';
         });
 
-        // Redirect to homepage after successful login
+        // Handle successful login and redirect to index.html
         document.getElementById('loginForm').addEventListener('submit', async function(event) {
             event.preventDefault();
 
@@ -77,6 +96,11 @@
                 });
 
                 if (response.ok) {
+                    const userData = await response.json();
+                    // Store the username in localStorage
+                    localStorage.setItem('username', userData.username);
+
+                    // Redirect to index.html
                     window.location.href = '/index.html'; // Redirect to homepage
                 } else {
                     const errorData = await response.json();
@@ -88,7 +112,7 @@
             }
         });
 
-        // Redirect to login page after successful registration
+        // Handle successful sign up and redirect to login page
         document.getElementById('signupForm').addEventListener('submit', async function(event) {
             event.preventDefault();
 
@@ -119,6 +143,16 @@
                 console.error('Error:', error);
                 alert('An unexpected error occurred. Please try again later.');
             }
+        });
+
+        // Handle sign-out
+        document.getElementById('signOutBtn').addEventListener('click', function() {
+            // Clear the username from localStorage
+            localStorage.removeItem('username');
+
+            // Hide user info and show login form again
+            document.querySelector('.user-info').style.display = 'none';
+            document.querySelector('.login-form').style.display = 'block';
         });
     </script>
 </body>
