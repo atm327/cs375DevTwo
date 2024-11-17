@@ -1,9 +1,9 @@
 {
     "api_key": "ENTER_YOUR_SPOONACULAR_API_KEY_HERE",
     "api_url": "https://api.spoonacular.com/recipes",
-    "user": "username",
+    "user": "USERNAME",
     "host": "localhost",
     "database": "recipe_db",
-    "password": "password",
+    "password": "PASSWORD",
     "port": 5432
 }
