@@ -9,6 +9,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const recipeSearch = document.getElementById('recipe-search');
     const searchTypeButtons = document.querySelectorAll('.search-toggle');
     
+    // Login-related elements
+    const loginForm = document.getElementById('login-form');
+    const logoutButton = document.getElementById('logout-button');
+    const usernameInput = document.getElementById('login-username');
+    const passwordInput = document.getElementById('login-password');
+
+    // Search type toggle between ingredients and recipe name
     searchTypeButtons.forEach(function(button) {
         button.addEventListener('click', function() {
             searchTypeButtons.forEach(function(btn) {
@@ -26,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // Handle search button click
     searchButton.addEventListener('click', function() {
         clearResults();
@@ -38,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
             searchWithRecipeName();
         }
     });
-    
+
     // Search by ingredients
     async function searchWithIngredients() {
         const ingredients = document.getElementById('ingredients').value;
@@ -70,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         hideLoading();
     }
-    
+
     // Search by recipe name
     async function searchWithRecipeName() {
         const recipeName = document.getElementById('recipe-name').value;
@@ -112,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         hideLoading();
     }
-    
+
     // Display recipe results using DOM methods
     function displayRecipeResults(recipes) {
         recipes.forEach(function(recipe) {
@@ -152,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
             recipesGrid.appendChild(card);
         });
     }
-    
+
     // Show recipe details
     async function showRecipeDetails(recipeId) {
         try {
@@ -196,44 +203,95 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(error);
         }
     }
-    
+
+    // Handle login form submission
+    loginForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+        
+        if (!username || !password) {
+            showError('Please provide both username and password');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                showError(error.message || 'Login failed');
+            } else {
+                hideError();
+            }
+        } catch (error) {
+            showError('Error logging in');
+            console.log(error);
+        }
+    });
+
+    // Handle logout
+    logoutButton.addEventListener('click', async function() {
+        try {
+            const response = await fetch('/api/logout', {
+                method: 'POST',
+            });
+            
+            if (!response.ok) {
+                showError('Error logging out');
+            } else {
+                checkLoginStatus();
+            }
+        } catch (error) {
+            showError('Error logging out');
+            console.log(error);
+        }
+    });
+
     // Helper functions
     function showError(message) {
         errorMessage.textContent = message;
         errorMessage.style.display = 'block';
     }
-    
+
     function hideError() {
         errorMessage.textContent = '';
         errorMessage.style.display = 'none';
     }
-    
+
     function clearResults() {
         while (recipesGrid.firstChild) {
             recipesGrid.removeChild(recipesGrid.firstChild);
         }
     }
-    
+
     function clearElement(element) {
         while (element.firstChild) {
             element.removeChild(element.firstChild);
         }
     }
-    
+
     function showLoading() {
         const loadingText = document.createElement('div');
         loadingText.textContent = 'Loading recipes...';
         loadingText.className = 'loading';
         recipesGrid.appendChild(loadingText);
     }
-    
+
     function hideLoading() {
         const loadingElement = document.querySelector('.loading');
         if (loadingElement) {
             loadingElement.remove();
         }
     }
-    
+
     closeButton.addEventListener('click', function() {
         modal.style.display = 'none';
     });

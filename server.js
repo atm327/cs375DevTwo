@@ -2,8 +2,11 @@ const axios = require("axios");
 const express = require("express");
 const path = require("path");
 const bcrypt = require('bcryptjs');
+const cookieParser = require("cookie-parser");
 const { Pool } = require("pg");
+const crypto = require("crypto");
 
+// Express setup
 const app = express();
 const apiFile = require("./env.json");
 const apiKey = apiFile["api_key"];
@@ -15,6 +18,7 @@ const hostname = "localhost";
 app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Database setup
 const pool = new Pool({
@@ -25,9 +29,36 @@ const pool = new Pool({
     port: apiFile["port"]
 });
 
+// Token storage (active session management)
+const activeSessions = {};
+
+// Helper function to generate a random token
+function generateToken() {
+    return crypto.randomBytes(32).toString("hex");
+}
+
+// Cookie options for secure cookie handling
+const cookieOptions = {
+    httpOnly: true,
+    secure: true, 
+    sameSite: "strict"
+};
+
+const authorize = (req, res, next) => {
+    const { token } = req.cookies;
+
+    if (!token || !activeSessions[token]) {
+        return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    console.log('User Authorized:', activeSessions[token]);
+    req.user = activeSessions[token]; // Attach user info to the request
+    next();
+};
+
+
 // User registration endpoint
 app.post('/api/register', async (req, res) => {
-    console.log('Registration request body:', req.body); // Log incoming request data
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
@@ -42,6 +73,7 @@ app.post('/api/register', async (req, res) => {
             'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING *',
             [username, email, hashedPassword]
         );
+
         res.status(201).json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -50,7 +82,6 @@ app.post('/api/register', async (req, res) => {
 
 // User login endpoint
 app.post('/api/login', async (req, res) => {
-    console.log('Login request body:', req.body); // Log incoming request data
     const { username, password } = req.body;
 
     if (!username || !password) {
@@ -74,14 +105,31 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ message: 'Invalid password' });
         }
 
-        res.status(200).json({ message: 'Login successful' });
+        // Generate token and store session globally
+        const token = generateToken();
+        activeSessions[token] = { userId: user.user_id, username: user.username };
+
+        res.cookie("token", token, cookieOptions).status(200).json({ message: "Login successful" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Get shopping list based on calendar meals
-app.get('/api/shopping-list', async (req, res) => {
+// User logout endpoint
+app.post('/api/logout', (req, res) => {
+    const { token } = req.cookies;
+
+    if (!token || !activeSessions[token]) {
+        return res.status(400).json({ error: "Invalid session or already logged out." });
+    }
+
+    // Remove the user session from global storage
+    delete activeSessions[token];
+    res.clearCookie("token", cookieOptions).status(200).json({ message: "Logout successful" });
+});
+
+// Get shopping list (requires authorization)
+app.get('/api/shopping-list', authorize, async (req, res) => {
     try {
         const startDate = req.query.startDate;
         const endDate = req.query.endDate;
@@ -90,39 +138,44 @@ app.get('/api/shopping-list', async (req, res) => {
             return res.status(400).json({ error: 'Dates are required' });
         }
 
+        // Get meals for date range
         const result = await pool.query(
             'SELECT ingredients FROM calendar_meals WHERE date BETWEEN $1 AND $2',
             [startDate, endDate]
         );
 
+        // Get pantry items for the logged-in user
         const pantryResult = await pool.query(
-            'SELECT item_name FROM pantry_items'
+            'SELECT item_name FROM pantry_items WHERE user_id = $1',
+            [req.user.userId]
         );
 
+        // Create lists (using Sets to avoid duplicates)
         const neededItems = new Set();
         const pantryItems = new Set();
 
+        // Add ingredients from meals
         result.rows.forEach(row => {
             neededItems.add(row.ingredients);
         });
 
+        // Add pantry items
         pantryResult.rows.forEach(row => {
             pantryItems.add(row.item_name);
         });
 
+        // Filter out items we already have
         const shoppingList = Array.from(neededItems)
             .filter(item => !pantryItems.has(item));
 
         res.json({ items: shoppingList });
 
     } catch (error) {
-        console.error('Error:', error);
         res.status(500).json({ error: 'Could not generate shopping list' });
     }
 });
 
-// Add or update pantry item
-app.post('/api/pantry', async (req, res) => {
+app.post('/api/pantry', authorize, async (req, res) => {
     try {
         const { item_name, quantity, unit, category } = req.body;
 
@@ -131,41 +184,52 @@ app.post('/api/pantry', async (req, res) => {
         }
 
         const result = await pool.query(
-            'INSERT INTO pantry_items (item_name, quantity, unit, category) VALUES ($1, $2, $3, $4) RETURNING *',
-            [item_name, quantity, unit, category]
+            'INSERT INTO pantry_items (item_name, quantity, unit, category, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [item_name, quantity, unit, category, req.user.userId]
         );
 
         res.status(200).json(result.rows[0]);
     } catch (error) {
         console.error('Error adding pantry item:', error);
-        res.status(500).json({ error: 'Could not add item' });
+        res.status(500).json({ error: 'Could not add item', details: error.message });
     }
 });
 
-// Get all pantry items
-app.get('/api/pantry', async (req, res) => {
+// Get all pantry items for logged-in user (requires authorization)
+app.get('/api/pantry', authorize, async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM pantry_items');
+        const result = await pool.query(
+            'SELECT * FROM pantry_items WHERE user_id = $1',
+            [req.user.userId]
+        );
+
         res.json(result.rows);
     } catch (error) {
-        console.error('Error getting pantry items:', error);
         res.status(500).json({ error: 'Could not get items' });
     }
 });
 
-app.delete('/api/pantry/:id', async (req, res) => {
-    const id = req.params.id;
+// Delete pantry item (requires authorization)
+app.delete('/api/pantry/:id', authorize, async (req, res) => {
+    const { id } = req.params;
 
     try {
-        await pool.query('DELETE FROM pantry_items WHERE pantry_item_id = $1', [id]);
-        res.json({ message: 'Item deleted' });
+        const result = await pool.query(
+            'DELETE FROM pantry_items WHERE item_id = $1 AND user_id = $2 RETURNING *',
+            [id, req.user.userId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Item not found or unauthorized' });
+        }
+
+        res.json({ message: 'Item deleted', deletedItem: result.rows[0] });
     } catch (error) {
-        console.log('Database error:', error);
         res.status(500).json({ error: 'Could not delete item' });
     }
 });
 
-// Recipe search routes
+// Recipe search
 app.get('/api/findByIngredients', async (req, res) => {
     const ingredients = req.query.ingredients;
     const number = req.query.number || 5;
