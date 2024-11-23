@@ -3,80 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Calendar - Recipe Meal Planner</title>
+    <title>Meal Calendar</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-content">
-            <h1>Recipe Meal Planner</h1>
-            <div class="nav-links">
-                <a href="index.html">Search</a>
-                <a href="calendar.html" class="active">Meal Calendar</a>
-                <a href="pantry.html">My Pantry</a>
-                <a href="login.html">Login</a>
-            </div>
-        </div>
-    </nav>
-
-    <main class="container">
-        <!-- Calendar Section -->
-        <div class="calendar-header">
-            <button id="prevMonth" class="nav-button">Previous</button>
-            <h2 id="currentMonth">November 2024</h2>
-            <button id="nextMonth" class="nav-button">Next</button>
-        </div>
-
-        <button id="generateList" class="btn-primary">
-            Generate Shopping List for Selected Week
-        </button>
-
-        <!-- Calendar Grid -->
-        <div class="calendar">
-            <!-- Days of Week Header -->
-            <div class="calendar-row weekdays">
-                <div>Sun</div>
-                <div>Mon</div>
-                <div>Tue</div>
-                <div>Wed</div>
-                <div>Thu</div>
-                <div>Fri</div>
-                <div>Sat</div>
-            </div>
-
-            <!-- Calendar Days -->
-            <div id="calendar-grid" class="calendar-grid">
-                <!-- Days will be added here by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Add Meal Modal -->
-        <div id="meal-modal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Add Meal for <span id="selectedDate"></span></h3>
-        
-        <div class="meal-form">
-            <div class="form-group">
-                <label for="mealTime">Meal Time:</label>
-                <select id="mealTime">
-                    <option value="breakfast">Breakfast</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="dinner">Dinner</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="recipeSearch">Search Recipe:</label>
-                <input type="text" id="recipeSearch" placeholder="Type recipe name and press Enter">
-            </div>
-
-            <div id="searchResults" class="search-results"></div>
+	<nav class="navbar">
+    <div class="nav-content">
+        <h1>Recipe Meal Planner</h1>
+        <div class="nav-links">
+            <a href="index.html">Search</a>
+            <a href="calendar.html" class="active">Meal Calendar</a>
+            <a href="pantry.html">My Pantry</a>
+            <a href="login.html" id="loginLink">Login</a>
         </div>
     </div>
-</div>
-    </main>
+    </nav>
+
+    <div class="container">
+        <div class="calendar-section">
+            <h2>Next Two Weeks Meal Plan</h2>
+            <div class="calendar">
+                <div class="weekdays" id="weekdays">
+                </div>
+                <div class="days-grid" id="calendar-days">
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="js/calendar.js"></script>
 </body>

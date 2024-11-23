@@ -22,14 +22,13 @@ CREATE TABLE saved_recipes (
                                ingredients TEXT NOT NULL
 );
 
-DROP TABLE IF EXISTS calendar_meals;
--- Table for calendar meals
+DROP TABLE IF EXISTS calendar_meals CASCADE;
 CREATE TABLE calendar_meals (
-                                meal_id SERIAL PRIMARY KEY,
-                                date DATE NOT NULL,
-                                meal_type VARCHAR(20) NOT NULL,
-                                recipe_name VARCHAR(100) NOT NULL,
-                                ingredients TEXT NOT NULL
+    meal_id SERIAL PRIMARY KEY,
+    date DATE NOT NULL,
+    meal_type VARCHAR(20) NOT NULL,
+    recipe_name VARCHAR(100) NOT NULL,
+    ingredients TEXT DEFAULT ''
 );
 
 DROP TABLE IF EXISTS pantry_items;

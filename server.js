@@ -302,22 +302,52 @@ app.get('/api/recipe/:id', async (req, res) => {
 });
 
 app.post('/api/calendar', async (req, res) => {
-    const { date, meal_type, recipe_name, ingredients } = req.body;
-
-    // Validate input
-    if (!date || !meal_type || !recipe_name) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-
     try {
-        const result = await pool.query(
-            'INSERT INTO calendar_meals (date, meal_type, recipe_name, ingredients) VALUES ($1, $2, $3, $4) RETURNING *',
-            [date, meal_type, recipe_name, ingredients]
-        );
+        const { date, meal_type, recipe_name } = req.body;
+
+        if (!date || !meal_type || !recipe_name) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        const query = `
+            INSERT INTO calendar_meals 
+            (date, meal_type, recipe_name, ingredients) 
+            VALUES ($1, $2, $3, '')  -- Explicitly providing empty string for ingredients
+            RETURNING *
+        `;
+
+        const result = await pool.query(query, [date, meal_type, recipe_name]);
         res.json(result.rows[0]);
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error saving meal:', error);
         res.status(500).json({ error: 'Could not save meal' });
+    }
+});
+
+app.get('/api/calendar', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM calendar_meals ORDER BY date');
+        
+        const meals = {};
+        result.rows.forEach(row => {
+            // Format date YYYY-MM-DD
+            const date = new Date(row.date);
+            const dateStr = date.getFullYear() + '-' + 
+                String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(date.getDate()).padStart(2, '0');
+            
+            if (!meals[dateStr]) {
+                meals[dateStr] = {};
+            }
+            meals[dateStr][row.meal_type] = {
+                title: row.recipe_name
+            };
+        });
+        
+        res.json(meals);
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Could not get meals' });
     }
 });
 
