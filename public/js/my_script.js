@@ -160,49 +160,133 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Show recipe details
-    async function showRecipeDetails(recipeId) {
-        try {
-            const response = await fetch(`/api/recipe/${recipeId}`);
-            if (!response.ok) {
-                throw new Error('Failed to get recipe details');
-            }
+	let currentRecipe = null;
+
+    // Helper function for formatting dates
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // Fill the date select options
+    function fillDateOptions() {
+        const dateSelect = document.getElementById('planDate');
+        if (!dateSelect) return;
+        
+        const today = new Date();
+        clearElement(dateSelect);
+        
+        for (let i = 0; i < 14; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
             
-            const recipe = await response.json();
-            const detailDiv = document.getElementById('recipe-detail');
-            clearElement(detailDiv);
-            
-            // Add recipe title
-            const title = document.createElement('h2');
-            title.textContent = recipe.title;
-            detailDiv.appendChild(title);
-            
-            // Add recipe image
-            const img = document.createElement('img');
-            img.src = recipe.image;
-            img.alt = recipe.title;
-            detailDiv.appendChild(img);
-            
-            // Add ingredients section
-            const ingredientsTitle = document.createElement('h3');
-            ingredientsTitle.textContent = 'Ingredients:';
-            detailDiv.appendChild(ingredientsTitle);
-            
-            const ingredientsList = document.createElement('ul');
-            recipe.extendedIngredients.forEach(function(ing) {
-                const li = document.createElement('li');
-                li.textContent = `${ing.amount} ${ing.unit} ${ing.name}`;
-                ingredientsList.appendChild(li);
+            const option = document.createElement('option');
+            option.value = formatDate(date);
+            const displayText = date.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
             });
-            detailDiv.appendChild(ingredientsList);
-            
-            // Show modal
-            modal.style.display = 'block';
-        } catch (error) {
-            showError('Error loading recipe details');
-            console.log(error);
+            option.appendChild(document.createTextNode(displayText));
+            dateSelect.appendChild(option);
         }
     }
+
+    // Show recipe details
+    function showRecipeDetails(recipeId) {
+        fetch(`/api/recipe/${recipeId}`)
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Failed to get recipe details');
+                }
+                return response.json();
+            })
+            .then(function(recipe) {
+                currentRecipe = recipe;
+                const detailDiv = document.getElementById('recipe-detail');
+                clearElement(detailDiv);
+                
+                // Add recipe title
+                const title = document.createElement('h2');
+                title.textContent = recipe.title;
+                detailDiv.appendChild(title);
+                
+                // Add recipe image
+                const img = document.createElement('img');
+                img.src = recipe.image;
+                img.alt = recipe.title;
+                detailDiv.appendChild(img);
+                
+                // Add ingredients section
+                const ingredientsTitle = document.createElement('h3');
+                ingredientsTitle.textContent = 'Ingredients:';
+                detailDiv.appendChild(ingredientsTitle);
+                
+                const ingredientsList = document.createElement('ul');
+                recipe.extendedIngredients.forEach(function(ing) {
+                    const li = document.createElement('li');
+                    li.textContent = ing.amount + ' ' + ing.unit + ' ' + ing.name;
+                    ingredientsList.appendChild(li);
+                });
+                detailDiv.appendChild(ingredientsList);
+                
+                fillDateOptions();
+                modal.style.display = 'block';
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                showError('Error loading recipe details');
+            });
+    }
+    
+	// Add meal to the calendar from index
+    const addToPlanBtn = document.getElementById('addToPlanBtn');
+    if (addToPlanBtn) {
+        addToPlanBtn.addEventListener('click', function() {
+            if (!currentRecipe) return;
+            
+            const date = document.getElementById('planDate').value;
+            const mealType = document.getElementById('planMealType').value;
+            
+            fetch('/api/calendar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    date: date,
+                    meal_type: mealType,
+                    recipe_name: currentRecipe.title
+                })
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Failed to add to meal plan');
+                }
+                return response.json();
+            })
+            .then(function() {
+                const successMsg = document.createElement('p');
+                successMsg.className = 'success-message';
+                successMsg.appendChild(document.createTextNode('Added to meal plan!'));
+                
+                const actionsDiv = document.querySelector('.recipe-actions');
+                if (actionsDiv) {
+                    actionsDiv.appendChild(successMsg);
+                    setTimeout(function() {
+                        actionsDiv.removeChild(successMsg);
+                    }, 2000);
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                showError('Error adding to meal plan');
+            });
+        });
+    }
+    
 
     // Handle login form submission
     loginForm.addEventListener('submit', async function(event) {
