@@ -20,16 +20,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const pantryHeader = document.querySelector('.pantry-header');
     pantryHeader.appendChild(generateBtn);
 
-    generateBtn.addEventListener('click', function() {
+    generateBtn.addEventListener('click', function () {
         const today = new Date();
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + 7);
-        
+    
         const startDate = today.toISOString().split('T')[0];
         const endDate = nextWeek.toISOString().split('T')[0];
-
+        console.log(`start: ${startDate} end: ${endDate}`);
         showMessage('Loading shopping list...');
-
+    
         fetch(`/api/shopping-list?startDate=${startDate}&endDate=${endDate}`)
             .then(response => {
                 if (!response.ok) {
@@ -38,13 +38,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                displayShoppingList(data.items);
+                displayShoppingList(data.calendarItems, data.pantryItems);
             })
             .catch(error => {
                 showMessage('Error loading shopping list');
                 console.error('Error:', error);
             });
-    });
+    });    
 
     addButton.addEventListener('click', function() {
         modal.style.display = 'block';
@@ -92,32 +92,66 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    function displayShoppingList(items) {
+    function displayShoppingList(calendarItems, pantryItems) {
         const modal = document.getElementById('lowStockModal');
         const listContainer = document.getElementById('lowStockItems');
-        
+    
         while (listContainer.firstChild) {
             listContainer.removeChild(listContainer.firstChild);
         }
-
+    
         const heading = document.createElement('h3');
         heading.textContent = 'Shopping List';
         listContainer.appendChild(heading);
-
-        if (!items || items.length === 0) {
+    
+        // Calendar Items Section
+        const calendarHeading = document.createElement('h4');
+        calendarHeading.textContent = 'Calendar Recipes';
+        listContainer.appendChild(calendarHeading);
+    
+        if (!calendarItems || calendarItems.length === 0) {
             const noItems = document.createElement('p');
-            noItems.textContent = 'No items needed';
+            noItems.textContent = 'No items from calendar recipes.';
             listContainer.appendChild(noItems);
         } else {
-            const list = document.createElement('ul');
-            items.forEach(item => {
+            const calendarList = document.createElement('ul');
+            calendarItems.forEach((item, index) => {
                 const listItem = document.createElement('li');
                 listItem.textContent = item;
-                list.appendChild(listItem);
+    
+                // Add a "Remove" button
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'Remove';
+                removeButton.onclick = function () {
+                    calendarItems.splice(index, 1); // Remove the item from the list
+                    displayShoppingList(calendarItems, pantryItems); // Refresh the display
+                };
+    
+                listItem.appendChild(removeButton);
+                calendarList.appendChild(listItem);
             });
-            listContainer.appendChild(list);
+            listContainer.appendChild(calendarList);
         }
-
+    
+        // Pantry Items Section
+        const pantryHeading = document.createElement('h4');
+        pantryHeading.textContent = 'Pantry Items';
+        listContainer.appendChild(pantryHeading);
+    
+        if (!pantryItems || pantryItems.length === 0) {
+            const noPantryItems = document.createElement('p');
+            noPantryItems.textContent = 'No pantry items available.';
+            listContainer.appendChild(noPantryItems);
+        } else {
+            const pantryList = document.createElement('ul');
+            pantryItems.forEach(item => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${item.item_name} - ${item.quantity} ${item.unit}`;
+                pantryList.appendChild(listItem);
+            });
+            listContainer.appendChild(pantryList);
+        }
+    
         modal.style.display = 'block';
     }
 

@@ -128,52 +128,52 @@ app.post('/api/logout', (req, res) => {
     res.clearCookie("token", cookieOptions).status(200).json({ message: "Logout successful" });
 });
 
-// Get shopping list (requires authorization)
-app.get('/api/shopping-list', authorize, async (req, res) => {
-    try {
-        const startDate = req.query.startDate;
-        const endDate = req.query.endDate;
+// // Get shopping list (requires authorization)
+// app.get('/api/shopping-list', authorize, async (req, res) => {
+//     try {
+//         const startDate = req.query.startDate;
+//         const endDate = req.query.endDate;
 
-        if (!startDate || !endDate) {
-            return res.status(400).json({ error: 'Dates are required' });
-        }
+//         if (!startDate || !endDate) {
+//             return res.status(400).json({ error: 'Dates are required' });
+//         }
 
-        // Get meals for date range
-        const result = await pool.query(
-            'SELECT ingredients FROM calendar_meals WHERE date BETWEEN $1 AND $2',
-            [startDate, endDate]
-        );
+//         // Get meals for date range
+//         const result = await pool.query(
+//             'SELECT ingredients FROM calendar_meals WHERE date BETWEEN $1 AND $2',
+//             [startDate, endDate]
+//         );
 
-        // Get pantry items for the logged-in user
-        const pantryResult = await pool.query(
-            'SELECT item_name FROM pantry_items WHERE user_id = $1',
-            [req.user.userId]
-        );
+//         // Get pantry items for the logged-in user
+//         const pantryResult = await pool.query(
+//             'SELECT item_name FROM pantry_items WHERE user_id = $1',
+//             [req.user.userId]
+//         );
 
-        // Create lists (using Sets to avoid duplicates)
-        const neededItems = new Set();
-        const pantryItems = new Set();
+//         // Create lists (using Sets to avoid duplicates)
+//         const neededItems = new Set();
+//         const pantryItems = new Set();
 
-        // Add ingredients from meals
-        result.rows.forEach(row => {
-            neededItems.add(row.ingredients);
-        });
+//         // Add ingredients from meals
+//         result.rows.forEach(row => {
+//             neededItems.add(row.ingredients);
+//         });
 
-        // Add pantry items
-        pantryResult.rows.forEach(row => {
-            pantryItems.add(row.item_name);
-        });
+//         // Add pantry items
+//         pantryResult.rows.forEach(row => {
+//             pantryItems.add(row.item_name);
+//         });
 
-        // Filter out items we already have
-        const shoppingList = Array.from(neededItems)
-            .filter(item => !pantryItems.has(item));
+//         // Filter out items we already have
+//         const shoppingList = Array.from(neededItems)
+//             .filter(item => !pantryItems.has(item));
 
-        res.json({ items: shoppingList });
+//         res.json({ items: shoppingList });
 
-    } catch (error) {
-        res.status(500).json({ error: 'Could not generate shopping list' });
-    }
-});
+//     } catch (error) {
+//         res.status(500).json({ error: 'Could not generate shopping list' });
+//     }
+// });
 
 app.post('/api/pantry', authorize, async (req, res) => {
     try {
@@ -301,22 +301,29 @@ app.get('/api/recipe/:id', async (req, res) => {
     }
 });
 
-app.post('/api/calendar', async (req, res) => {
+app.post('/api/calendar', authorize, async (req, res) => {
     try {
-        const { date, meal_type, recipe_name } = req.body;
+        const { date, meal_type, recipe_name, ingredients } = req.body;
 
-        if (!date || !meal_type || !recipe_name) {
+        if (!date || !meal_type || !recipe_name || !ingredients) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
         const query = `
             INSERT INTO calendar_meals 
-            (date, meal_type, recipe_name, ingredients) 
-            VALUES ($1, $2, $3, '')  -- Explicitly providing empty string for ingredients
+            (user_id, date, meal_type, recipe_name, ingredients) 
+            VALUES ($1, $2, $3, $4, $5) 
             RETURNING *
         `;
 
-        const result = await pool.query(query, [date, meal_type, recipe_name]);
+        const result = await pool.query(query, [
+            req.user.userId, 
+            date, 
+            meal_type, 
+            recipe_name, 
+            ingredients // This should now be a valid JSON string
+        ]);
+
         res.json(result.rows[0]);
     } catch (error) {
         console.error('Error saving meal:', error);
@@ -324,32 +331,92 @@ app.post('/api/calendar', async (req, res) => {
     }
 });
 
-app.get('/api/calendar', async (req, res) => {
+
+app.get('/api/calendar', authorize, async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM calendar_meals ORDER BY date');
-        
+        const result = await pool.query(
+            'SELECT * FROM calendar_meals WHERE user_id = $1 ORDER BY date',
+            [req.user.userId]
+        );
+
         const meals = {};
         result.rows.forEach(row => {
-            // Format date YYYY-MM-DD
-            const date = new Date(row.date);
-            const dateStr = date.getFullYear() + '-' + 
-                String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                String(date.getDate()).padStart(2, '0');
-            
+            const dateStr = row.date.toISOString().split('T')[0]; // Format date as YYYY-MM-DD
             if (!meals[dateStr]) {
                 meals[dateStr] = {};
             }
             meals[dateStr][row.meal_type] = {
-                title: row.recipe_name
+                title: row.recipe_name,
             };
         });
-        
+
         res.json(meals);
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error retrieving meals:', error);
         res.status(500).json({ error: 'Could not get meals' });
     }
 });
+
+app.delete('/api/calendar/:recipe_name', authorize, async (req, res) => {
+    const { recipe_name } = req.params;
+
+    try {
+        // Adjust the query to delete based on the recipe_name instead of the meal_id
+        const result = await pool.query(
+            'DELETE FROM calendar_meals WHERE recipe_name = $1 AND user_id = $2 RETURNING *',
+            [recipe_name, req.user.userId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Meal not found or unauthorized' });
+        }
+
+        res.json({ message: 'Meal deleted', deletedMeal: result.rows[0] });
+    } catch (error) {
+        console.error('Error deleting meal:', error);
+        res.status(500).json({ error: 'Could not delete meal' });
+    }
+});
+
+app.get('/api/shopping-list', authorize, async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    try {
+        // Fetch calendar recipes for the user within the given date range
+        const calendarResult = await pool.query(
+            `
+            SELECT ingredients 
+            FROM calendar_meals 
+            WHERE user_id = $1 AND date BETWEEN $2 AND $3
+            `,
+            [req.user.userId, startDate, endDate]
+        );
+
+        const calendarIngredients = calendarResult.rows
+            .map(row => row.ingredients.split(',').map(ingredient => ingredient.trim())) // Split and trim
+            .flat(); // Flatten the array
+
+        // Fetch pantry items for the user
+        const pantryResult = await pool.query(
+            `
+            SELECT item_name, quantity, unit 
+            FROM pantry_items 
+            WHERE user_id = $1
+            `,
+            [req.user.userId]
+        );
+
+        const pantryItems = pantryResult.rows;
+        res.json({
+            calendarItems: [...new Set(calendarIngredients)],
+            pantryItems,
+        });
+    } catch (error) {
+        console.error('Error fetching shopping list:', error);
+        res.status(500).json({ error: 'Could not generate shopping list' });
+    }
+});
+
 
 app.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}`);

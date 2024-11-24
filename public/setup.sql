@@ -25,10 +25,12 @@ CREATE TABLE saved_recipes (
 DROP TABLE IF EXISTS calendar_meals CASCADE;
 CREATE TABLE calendar_meals (
     meal_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
     date DATE NOT NULL,
     meal_type VARCHAR(20) NOT NULL,
     recipe_name VARCHAR(100) NOT NULL,
-    ingredients TEXT DEFAULT ''
+    ingredients TEXT DEFAULT '',
+    CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 DROP TABLE IF EXISTS pantry_items;
