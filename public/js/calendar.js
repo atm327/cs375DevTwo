@@ -98,48 +98,68 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Remove a meal from a day
     function removeMeal(dateStr, mealType) {
         if (meals[dateStr]) {
-            delete meals[dateStr][mealType];
-            // If no more meals that day, remove the whole day
-            if (Object.keys(meals[dateStr]).length === 0) {
-                delete meals[dateStr];
-            }
-            updateCalendar();
+            const meal = meals[dateStr][mealType];  // Get the meal object
+            const recipeName = meal.title;  // Assuming `meal.title` contains the `recipe_name`
+    
+            // Call the API to delete the meal
+            fetch(`/api/calendar/${recipeName}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Could not delete meal');
+                }
+    
+                // If the delete is successful, remove the meal from the local meals object
+                delete meals[dateStr][mealType];
+    
+                // If no more meals for that day, remove the whole day
+                if (Object.keys(meals[dateStr]).length === 0) {
+                    delete meals[dateStr];
+                }
+    
+                updateCalendar();  // Refresh the calendar display
+            })
+            .catch(error => {
+                console.error('Error removing meal:', error);
+            });
         }
     }
+    
 
     // Get meals from server
 	function loadMeals() {
-    	const loadingMessage = document.createElement('div');
-    	loadingMessage.textContent = 'Loading meals...';
-    	calendarDays.appendChild(loadingMessage);
-
-    	fetch('/api/calendar')
-        	.then(function(response) {
-            	if (!response.ok) {
-                	throw new Error('Could not get meals');
-            	}
-            	return response.json();
-        	})
-        	.then(function(data) {
-            	meals = data;
-            	updateCalendar();
-        	})
-        	.catch(function(error) {
-            	console.error('Could not load meals:', error);
-            	const errorMessage = document.createElement('div');
-            	errorMessage.textContent = 'Error loading meals. Please try again.';
-            	errorMessage.className = 'error-message';
-            	calendarDays.appendChild(errorMessage);
-        	})
-        	.finally(function() {
-            	if (loadingMessage.parentNode) {
-                	loadingMessage.parentNode.removeChild(loadingMessage);
-            	}
-        	});
-	}
+        const loadingMessage = document.createElement('div');
+        loadingMessage.textContent = 'Loading meals...';
+        calendarDays.appendChild(loadingMessage);
+    
+        fetch('/api/calendar', { credentials: 'include' })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Could not get meals');
+                }
+                return response.json();
+            })
+            .then(data => {
+                meals = data;
+                updateCalendar();
+            })
+            .catch(error => {
+                console.error('Could not load meals:', error);
+                const errorMessage = document.createElement('div');
+                errorMessage.textContent = 'Error loading meals. Please try again.';
+                errorMessage.className = 'error-message';
+                calendarDays.appendChild(errorMessage);
+            })
+            .finally(() => {
+                if (loadingMessage.parentNode) {
+                    loadingMessage.parentNode.removeChild(loadingMessage);
+                }
+            });
+    }    
 
     makeWeekdays();
     loadMeals();
