@@ -45,6 +45,18 @@ document.addEventListener('DOMContentLoaded', function () {
             searchWithRecipeName();
         }
     });
+    
+    document.querySelectorAll('.close').forEach(closeButton => {
+        closeButton.addEventListener('click', function() {
+            this.closest('.modal').style.display = 'none';
+        });
+    });
+    
+    window.addEventListener('click', function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    });
 
     // Search by ingredients
     async function searchWithIngredients() {
