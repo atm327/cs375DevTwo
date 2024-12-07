@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": "node app/server.js",
-    "setup": "fly postgres connect -a deploydevtwo < setup.sql",
+    "setup": "fly postgres connect -a deploydevtwodb < setup.sql",
     "start:local": "env-cmd node app/server.js",
     "setup:local": "env-cmd psql -d postgres -c \"create database deploydevtwo\" -f setup.sql"
   },
@@ -14,7 +14,8 @@
     "pg": "^8.13.1"
   },
   "devDependencies": {
-    "@flydotio/dockerfile": "^0.4.11"
+    "@flydotio/dockerfile": "^0.4.11",
+    "env-cmd": "^10.1.0"
   },
   "name": "recipe-meal-planner",
   "version": "1.0.0",
