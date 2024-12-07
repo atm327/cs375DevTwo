@@ -20,30 +20,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const pantryHeader = document.querySelector('.pantry-header');
     pantryHeader.appendChild(generateBtn);
 
-    generateBtn.addEventListener('click', function () {
+    generateBtn.addEventListener('click', async function () {
         const today = new Date();
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + 7);
-    
+
         const startDate = today.toISOString().split('T')[0];
         const endDate = nextWeek.toISOString().split('T')[0];
-        console.log(`start: ${startDate} end: ${endDate}`);
-        showMessage('Loading shopping list...');
-    
-        fetch(`/api/shopping-list?startDate=${startDate}&endDate=${endDate}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to get shopping list');
-                }
-                return response.json();
-            })
-            .then(data => {
-                displayShoppingList(data.calendarItems, data.pantryItems);
-            })
-            .catch(error => {
-                showMessage('Error loading shopping list');
-                console.error('Error:', error);
-            });
+
+        try {
+            const response = await fetch(`/api/shopping-list?startDate=${startDate}&endDate=${endDate}`, { credentials: 'include' });
+            if (!response.ok) {
+                throw new Error('Failed to get shopping list');
+            }
+            const data = await response.json();
+
+            console.log('Fetched Shopping List Data:', data); // Debugging line
+
+            const calendarItems = data.savedItems || [];
+            const pantryItems = data.pantryItems || [];
+
+            displayShoppingList(calendarItems, pantryItems);
+        } catch (error) {
+            console.error('Error loading shopping list:', error);
+            showMessage('Error loading shopping list');
+        }
     });    
 
     addButton.addEventListener('click', function() {
@@ -127,20 +128,48 @@ document.addEventListener('DOMContentLoaded', function() {
             listContainer.appendChild(noItems);
         } else {
             const calendarList = document.createElement('ul');
-            calendarItems.forEach((item, index) => {
-                const listItem = document.createElement('li');
-                listItem.textContent = item;
-    
-                // Add a "Remove" button
-                const removeButton = document.createElement('button');
-                removeButton.textContent = 'Remove';
-                removeButton.onclick = function () {
-                    calendarItems.splice(index, 1); // Remove the item from the list
-                    displayShoppingList(calendarItems, pantryItems); // Refresh the display
-                };
-    
-                listItem.appendChild(removeButton);
-                calendarList.appendChild(listItem);
+            calendarItems.forEach((item) => {
+                // Assuming item.ingredients is a comma-separated string
+                const ingredientsArray = item.ingredients.split(',').map(ingredient => ingredient.trim().replace(/['"\[\]]/g, ''));
+
+                ingredientsArray.forEach(ingredient => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${ingredient} (From: ${item.recipe_name})`; // Display each ingredient with recipe name
+
+                    // Add a "Remove" button
+                    const removeButton = document.createElement('button');
+                    removeButton.textContent = 'Remove';
+                    removeButton.onclick = async function () {
+                        // Remove the ingredient from the ingredients array
+                        const updatedIngredients = ingredientsArray.filter(i => i !== ingredient); // Keep the entire string
+                        item.ingredients = updatedIngredients.join(', ').replace(/[\[\]"]/g, ''); // Update the ingredients in the item
+
+                        // Update the shopping list in the database
+                        try {
+                            const response = await fetch(`/api/shopping-list/${item.meal_id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ ingredients: item.ingredients, recipe_name: item.recipe_name }) // Include recipe_name if needed
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Could not update shopping list');
+                            }
+
+                            // Refresh the display
+                            displayShoppingList(calendarItems, pantryItems);
+                            showMessage('Ingredient removed from shopping list');
+                        } catch (error) {
+                            console.error('Error updating shopping list:', error);
+                            showMessage('Error removing ingredient from shopping list');
+                        }
+                    };
+
+                    listItem.appendChild(removeButton);
+                    calendarList.appendChild(listItem);
+                });
             });
             listContainer.appendChild(calendarList);
         }
@@ -164,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
             listContainer.appendChild(pantryList);
         }
     
-        modal.style.display = 'block';
+        modal.style.display = 'block'; // Ensure the modal is displayed
     }
 
     function showPantryItems() {

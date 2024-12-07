@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS pantry_items;
 DROP TABLE IF EXISTS calendar_meals;
 DROP TABLE IF EXISTS saved_recipes;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS shopping_list;
 
 -- create whatever tables you need here
 -- Create the database
@@ -46,5 +47,14 @@ CREATE TABLE pantry_items (
                               category VARCHAR(50) NOT NULL,
                               user_id INTEGER NOT NULL,
                               CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+CREATE TABLE shopping_list (
+    user_id INT NOT NULL,
+    meal_id INT NOT NULL,
+    ingredients TEXT NOT NULL,
+    date DATE NOT NULL,
+    recipe_name VARCHAR(100) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 \q
