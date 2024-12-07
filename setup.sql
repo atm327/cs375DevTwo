@@ -1,10 +1,16 @@
--- Create the database
-DROP DATABASE IF EXISTS recipe_db;
-CREATE DATABASE recipe_db;
+\c deploydevtwodb
 
-\c recipe_db
-
+-- use this to clear any existing tables to reinsert fresh data
+-- you'll need to add a DROP TABLE for every table you add
+-- we don't drop the database because that causes errors with fly
+DROP TABLE IF EXISTS pantry_items;
+DROP TABLE IF EXISTS calendar_meals;
+DROP TABLE IF EXISTS saved_recipes;
 DROP TABLE IF EXISTS users;
+
+-- create whatever tables you need here
+-- Create the database
+
 -- Create the users table
 CREATE TABLE users (
                        user_id SERIAL PRIMARY KEY,
@@ -14,7 +20,6 @@ CREATE TABLE users (
                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-DROP TABLE IF EXISTS saved_recipes;
 -- Table for storing saved recipes
 CREATE TABLE saved_recipes (
                                recipe_id SERIAL PRIMARY KEY,
@@ -22,7 +27,6 @@ CREATE TABLE saved_recipes (
                                ingredients TEXT NOT NULL
 );
 
-DROP TABLE IF EXISTS calendar_meals CASCADE;
 CREATE TABLE calendar_meals (
     meal_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
@@ -33,7 +37,6 @@ CREATE TABLE calendar_meals (
     CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
-DROP TABLE IF EXISTS pantry_items;
 -- Table for pantry items
 CREATE TABLE pantry_items (
                               item_id SERIAL PRIMARY KEY,
@@ -44,3 +47,4 @@ CREATE TABLE pantry_items (
                               user_id INTEGER NOT NULL,
                               CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+\q

@@ -1,33 +1,55 @@
-const axios = require("axios");
-const express = require("express");
+let express = require("express");
+let { Pool } = require("pg");
 const path = require("path");
 const bcrypt = require('bcryptjs');
 const cookieParser = require("cookie-parser");
-const { Pool } = require("pg");
 const crypto = require("crypto");
+const axios = require("axios");
 
-// Express setup
-const app = express();
-const apiFile = require("./env.json");
-const apiKey = apiFile["api_key"];
-const baseUrl = "https://api.spoonacular.com/recipes"; 
-const apiUrl = "https://api.spoonacular.com/recipes";
-const port = 3000;
-const hostname = "localhost";
+// make this script's dir the cwd
+// b/c npm run start doesn't cd into src/ to run this
+// and if we aren't in its cwd, all relative paths will break
+process.chdir(__dirname);
 
-app.use(express.static("public"));
+let port = 3000;
+let host;
+let databaseConfig;
+
+// fly.io sets NODE_ENV to production automatically, otherwise it's unset when running locally
+if (process.env.NODE_ENV == "production") {
+	host = "0.0.0.0";
+	databaseConfig = { connectionString: process.env.DATABASE_URL };
+} else {
+	host = "localhost";
+	let { PGUSER, PGPASSWORD, PGDATABASE, PGHOST, PGPORT } = process.env;
+	databaseConfig = { PGUSER, PGPASSWORD, PGDATABASE, PGHOST, PGPORT };
+}
+
+let app = express();
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Database setup
-const pool = new Pool({
-    user: apiFile["user"],
-    host: apiFile["host"],
-    database: apiFile["database"],
-    password: apiFile["password"],
-    port: apiFile["port"]
+// uncomment these to debug
+// console.log(JSON.stringify(process.env, null, 2));
+// console.log(JSON.stringify(databaseConfig, null, 2));
+
+let pool = new Pool(databaseConfig);
+pool.connect().then(() => {
+	console.log("Connected to db");
 });
+
+/*
+KEEP EVERYTHING ABOVE HERE
+REPLACE THE FOLLOWING WITH YOUR SERVER CODE 
+*/
+
+// Express setup
+const apiFile = require("../env.json");
+const apiKey = apiFile["api_key"];
+const baseUrl = "https://api.spoonacular.com/recipes"; 
+const apiUrl = "https://api.spoonacular.com/recipes";
 
 // Token storage (active session management)
 const activeSessions = {};
@@ -127,53 +149,6 @@ app.post('/api/logout', (req, res) => {
     delete activeSessions[token];
     res.clearCookie("token", cookieOptions).status(200).json({ message: "Logout successful" });
 });
-
-// // Get shopping list (requires authorization)
-// app.get('/api/shopping-list', authorize, async (req, res) => {
-//     try {
-//         const startDate = req.query.startDate;
-//         const endDate = req.query.endDate;
-
-//         if (!startDate || !endDate) {
-//             return res.status(400).json({ error: 'Dates are required' });
-//         }
-
-//         // Get meals for date range
-//         const result = await pool.query(
-//             'SELECT ingredients FROM calendar_meals WHERE date BETWEEN $1 AND $2',
-//             [startDate, endDate]
-//         );
-
-//         // Get pantry items for the logged-in user
-//         const pantryResult = await pool.query(
-//             'SELECT item_name FROM pantry_items WHERE user_id = $1',
-//             [req.user.userId]
-//         );
-
-//         // Create lists (using Sets to avoid duplicates)
-//         const neededItems = new Set();
-//         const pantryItems = new Set();
-
-//         // Add ingredients from meals
-//         result.rows.forEach(row => {
-//             neededItems.add(row.ingredients);
-//         });
-
-//         // Add pantry items
-//         pantryResult.rows.forEach(row => {
-//             pantryItems.add(row.item_name);
-//         });
-
-//         // Filter out items we already have
-//         const shoppingList = Array.from(neededItems)
-//             .filter(item => !pantryItems.has(item));
-
-//         res.json({ items: shoppingList });
-
-//     } catch (error) {
-//         res.status(500).json({ error: 'Could not generate shopping list' });
-//     }
-// });
 
 app.post('/api/pantry', authorize, async (req, res) => {
     try {
@@ -418,6 +393,6 @@ app.get('/api/shopping-list', authorize, async (req, res) => {
 });
 
 
-app.listen(port, hostname, () => {
-    console.log(`Server running at http://${hostname}:${port}`);
+app.listen(port, host, () => {
+    console.log(`Server running at http://${host}:${port}`);
 });
