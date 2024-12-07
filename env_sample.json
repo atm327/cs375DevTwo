@@ -1,9 +1,9 @@
 {
-    "api_key": "ENTER_YOUR_SPOONACULAR_API_KEY_HERE",
+    "api_key": "YOUR_API_KEY_HERE",
     "api_url": "https://api.spoonacular.com/recipes",
-    "user": "USERNAME",
-    "host": "localhost",
-    "database": "recipe_db",
-    "password": "PASSWORD",
+    "user": "postgres",
+    "host": "deploydevtwodb.internal",
+    "database": "deploydevtwodb",
+    "password": "PASSWORD_HERE",
     "port": 5432
 }
