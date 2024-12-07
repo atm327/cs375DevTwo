@@ -249,8 +249,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const date = document.getElementById('planDate').value;
             const mealType = document.getElementById('planMealType').value;
-            // Serialize ingredients
-            const originalIngredients = currentRecipe.extendedIngredients.map(item => item.original);
+            const originalIngredients = currentRecipe.extendedIngredients.map(item => item.originalName);
             const serializedOriginalIngredients = JSON.stringify(originalIngredients);
 
             console.log(serializedOriginalIngredients);

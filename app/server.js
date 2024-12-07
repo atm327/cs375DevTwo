@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
 const axios = require("axios");
-
+require('dotenv').config();
 // make this script's dir the cwd
 // b/c npm run start doesn't cd into src/ to run this
 // and if we aren't in its cwd, all relative paths will break
@@ -296,10 +296,18 @@ app.post('/api/calendar', authorize, async (req, res) => {
             date, 
             meal_type, 
             recipe_name, 
-            ingredients // This should now be a valid JSON string
+            ingredients
         ]);
 
-        res.json(result.rows[0]);
+        const meal = result.rows[0];
+
+        // Add meal_id, ingredients, date, and recipe_name to shopping list
+        await pool.query(
+            'INSERT INTO shopping_list (user_id, meal_id, ingredients, date, recipe_name) VALUES ($1, $2, $3, $4, $5)',
+            [req.user.userId, meal.meal_id, ingredients, date, recipe_name]
+        );
+
+        res.json(meal);
     } catch (error) {
         console.error('Error saving meal:', error);
         res.status(500).json({ error: 'Could not save meal' });
@@ -336,7 +344,7 @@ app.delete('/api/calendar/:recipe_name', authorize, async (req, res) => {
     const { recipe_name } = req.params;
 
     try {
-        // Adjust the query to delete based on the recipe_name instead of the meal_id
+        // Adjust the query to delete based on the recipe_name
         const result = await pool.query(
             'DELETE FROM calendar_meals WHERE recipe_name = $1 AND user_id = $2 RETURNING *',
             [recipe_name, req.user.userId]
@@ -346,7 +354,15 @@ app.delete('/api/calendar/:recipe_name', authorize, async (req, res) => {
             return res.status(404).json({ error: 'Meal not found or unauthorized' });
         }
 
-        res.json({ message: 'Meal deleted', deletedMeal: result.rows[0] });
+        const deletedMeal = result.rows[0];
+
+        // Remove the corresponding entry from the shopping list
+        await pool.query(
+            'DELETE FROM shopping_list WHERE meal_id = $1 AND user_id = $2',
+            [deletedMeal.meal_id, req.user.userId]
+        );
+
+        res.json({ message: 'Meal deleted', deletedMeal });
     } catch (error) {
         console.error('Error deleting meal:', error);
         res.status(500).json({ error: 'Could not delete meal' });
@@ -354,44 +370,61 @@ app.delete('/api/calendar/:recipe_name', authorize, async (req, res) => {
 });
 
 app.get('/api/shopping-list', authorize, async (req, res) => {
-    const { startDate, endDate } = req.query;
-
     try {
-        // Fetch calendar recipes for the user within the given date range
-        const calendarResult = await pool.query(
-            `
-            SELECT ingredients 
-            FROM calendar_meals 
-            WHERE user_id = $1 AND date BETWEEN $2 AND $3
-            `,
+        const today = new Date();
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+
+        const startDate = today.toISOString().split('T')[0];
+        const endDate = nextWeek.toISOString().split('T')[0];
+
+        // Fetch shopping list items based on the date range
+        const shoppingListResult = await pool.query(
+            'SELECT * FROM shopping_list WHERE user_id = $1 AND date BETWEEN $2 AND $3',
             [req.user.userId, startDate, endDate]
         );
 
-        const calendarIngredients = calendarResult.rows
-            .map(row => row.ingredients.split(',').map(ingredient => ingredient.trim())) // Split and trim
-            .flat(); // Flatten the array
-
-        // Fetch pantry items for the user
         const pantryResult = await pool.query(
-            `
-            SELECT item_name, quantity, unit 
-            FROM pantry_items 
-            WHERE user_id = $1
-            `,
+            'SELECT * FROM pantry_items WHERE user_id = $1',
             [req.user.userId]
         );
 
+        const shoppingListItems = shoppingListResult.rows;
         const pantryItems = pantryResult.rows;
+
         res.json({
-            calendarItems: [...new Set(calendarIngredients)],
-            pantryItems,
+            savedItems: shoppingListItems, // Adjust this based on your logic
+            pantryItems: pantryItems
         });
     } catch (error) {
         console.error('Error fetching shopping list:', error);
-        res.status(500).json({ error: 'Could not generate shopping list' });
+        res.status(500).json({ error: 'Could not fetch shopping list' });
     }
 });
 
+// Update shopping list item
+app.put('/api/shopping-list/:meal_id', authorize, async (req, res) => {
+    const { meal_id } = req.params;
+    const { ingredients } = req.body; // Get the updated ingredients from the request body
+
+    try {
+        // Update the shopping list in the database
+        const result = await pool.query(
+            'UPDATE shopping_list SET ingredients = $1 WHERE meal_id = $2 AND user_id = $3 RETURNING *',
+            [ingredients, meal_id, req.user.userId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Shopping list item not found or unauthorized' });
+        }
+
+        const updatedItem = result.rows[0];
+        res.json(updatedItem); // Return the updated item
+    } catch (error) {
+        console.error('Error updating shopping list:', error);
+        res.status(500).json({ error: 'Could not update shopping list' });
+    }
+});
 
 app.listen(port, host, () => {
     console.log(`Server running at http://${host}:${port}`);
