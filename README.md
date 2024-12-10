@@ -1,62 +1,54 @@
 # Recipe Meal Planner
 
-A web application that helps you find recipes, plan meals, and manage your pantry. 
-Built with HTML, CSS, JavaScript, and Node.js using the Spoonacular API.
+A web application that helps you find recipes, plan meals, and manage your pantry.
+Built with HTML, CSS, JavaScript, Node.js, and PostgreSQL using the Spoonacular API.
 
 ## Features
 
+- User authentication with signup/login functionality
 - Search recipes by ingredients or recipe name
-- View detailed recipe information
 - Plan meals using a calendar interface
 - Manage pantry inventory
-- Generate shopping lists
+- Generate shopping lists based on meal plans and pantry
+- Deployed on fly.io with PostgreSQL database
 
 ## Setup
 
 1. Clone the repository
-```bash
-git clone [your-repository-url]
-cd [repository-name]
-```
+`git clone [your-repository-url]
+cd [repository-name]`
 
 2. Install dependencies
-```bash
-npm install
-```
+`npm install`
 
 3. Set up Spoonacular API
 - Get your API key from [Spoonacular API](https://spoonacular.com/food-api)
-- Add your API key to `env.json`
-```json
-{
-    "api_key": "your-api-key-here",
-    "api_url": "https://api.spoonacular.com/recipes"
-}
-```
+- Copy env_sample.json to env.json and update with your credentials.
 
-4. Start the server
-```bash
-node server.js
-```
+4. Set up database and start server
+`npm run setup:local`
 
 5. Open in browser
 - Go to `http://localhost:3000`
-- You should see the recipe search page
+- Create an account or login to access features
 
 ## Usage
 
 - **Search Recipes**: Enter ingredients or recipe names in the search bar
 - **View Recipe Details**: Click on any recipe card to see detailed information
-- **Plan Meals**: Use the calendar page to schedule meals
-- **Manage Pantry**: Track your ingredients in the pantry page
+- **Plan Meals**: Use the calendar page to schedule meals for up to two weeks
+- **Manage Pantry**: Track your ingredients in the pantry page with categories
+- **Shopping Lists**: Generate lists based on meal plans on calendar
 
 ## Files
 
-- `index.html`: Main recipe search page
-- `calendar.html`: Meal planning calendar
-- `pantry.html`: Pantry management
-- `server.js`: Node.js server
-- `public/`: Frontend files
+- index.html: Main recipe search page
+- calendar.html: Meal planning calendar
+- pantry.html: Pantry management
+- login.html: User authentication
+- server.js: Node.js server
+- public/: Frontend files
+- setup.sql: Database schema
 
 ## Contributors
 
@@ -65,4 +57,4 @@ node server.js
 
 ## Course Information
 
-Created for CS375 Web Development
+Created for CS375 Web Development at Drexel University
