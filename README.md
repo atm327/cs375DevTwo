@@ -26,7 +26,7 @@ cd [repository-name]`
 - Copy env_sample.json to env.json and update with your credentials.
 
 4. Set up database and start server
-`npm run setup:local`
+`npm run start:local`
 
 5. Open in browser
 - Go to `http://localhost:3000`
